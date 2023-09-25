@@ -78,7 +78,6 @@ namespace UEcastocLib
 
             if (udata.IsEncrypted())
             {
-                throw new Exception("Encrypted file, but no AES key was provided! Please pass the AES key as a byte array.");
                 if (aesKey == null || aesKey.Length == 0)
                 {
                     throw new Exception("Encrypted file, but no AES key was provided! Please pass the AES key as a byte array.");
