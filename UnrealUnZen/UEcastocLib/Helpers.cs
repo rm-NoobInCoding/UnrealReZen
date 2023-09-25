@@ -14,6 +14,7 @@ namespace UEcastocLib
             {
                 aesAlg.Key = AESKey;
                 aesAlg.Mode = CipherMode.ECB;
+                aesAlg.Padding = PaddingMode.None;
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 

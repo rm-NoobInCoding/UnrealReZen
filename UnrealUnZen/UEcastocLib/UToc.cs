@@ -105,6 +105,11 @@ namespace UEcastocLib
             udata.CompressionMethods = UTocDataExtensions.ParseCompressionMethods(compressionMethodsData, (int)udata.Header.CompressionMethodNameCount);
             ReadBefore += compressionMethodsData.Length;
 
+            if (udata.Header.ContainerFlags.HasFlag(EIoContainerFlags.SignedContainerFlag))
+            {
+                int hSize = BitConverter.ToInt32(utocData.Skip((int)ReadBefore).Take(4).ToArray(), 0);
+                ReadBefore += 4 + hSize * 2 + 20 * udata.Header.CompressedBlockEntryCount;
+            }
 
             byte[] directoryIndexData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.DirectoryIndexSize).ToArray();
             ReadBefore += directoryIndexData.Length;
