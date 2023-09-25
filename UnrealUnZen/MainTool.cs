@@ -153,34 +153,34 @@ namespace UnrealUnZen
 
         private void button3_Click(object sender, EventArgs e)
         {
-            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-            dialog.IsFolderPicker = true;
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-            {
-                int res = createManifestFile(tocadd, Path.ChangeExtension(tocadd, ".ucas"), "temp.json", AESKey.Text);
-                if (res != -1)
-                {
-                    res = packGameFiles(dialog.FileName, "temp.json", Path.GetDirectoryName(tocadd) + "\\" + Path.GetFileNameWithoutExtension(tocadd) + "_new", "Zlib", AESKey.Text);
-                    if (res != -1)
-                    {
-                        File.Delete("temp.json");
-                        MessageBox.Show("Done!");
-                    }
-                    else
-                    {
-                        IntPtr errorPtr = getError();
-                        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-                        MessageBox.Show(res + " : " + errorMessage);
-                    }
-                }
-                else
-                {
-                    IntPtr errorPtr = getError();
-                    string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-                    MessageBox.Show(res + " : " + errorMessage);
-                }
+            //CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            //dialog.IsFolderPicker = true;
+            //if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            //{
+            //    int res = createManifestFile(tocadd, Path.ChangeExtension(tocadd, ".ucas"), "temp.json", AESKey.Text);
+            //    if (res != -1)
+            //    {
+            //        res = packGameFiles(dialog.FileName, "temp.json", Path.GetDirectoryName(tocadd) + "\\" + Path.GetFileNameWithoutExtension(tocadd) + "_new", "Zlib", AESKey.Text);
+            //        if (res != -1)
+            //        {
+            //            File.Delete("temp.json");
+            //            MessageBox.Show("Done!");
+            //        }
+            //        else
+            //        {
+            //            IntPtr errorPtr = getError();
+            //            string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+            //            MessageBox.Show(res + " : " + errorMessage);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        IntPtr errorPtr = getError();
+            //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+            //        MessageBox.Show(res + " : " + errorMessage);
+            //    }
 
-            }
+            //}
         }
 
         private void button4_Click(object sender, EventArgs e)

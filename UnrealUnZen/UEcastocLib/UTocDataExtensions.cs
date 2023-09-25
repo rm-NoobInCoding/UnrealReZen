@@ -134,6 +134,8 @@ namespace UEcastocLib
                 header.TocChunksWithoutPerfectHashCount = reader.ReadUInt32();
                 reader.ReadBytes(36); // Reserved2
 
+                //MessageBox.Show(header.ContainerFlags + "");
+
                 if (header.Magic != Constants.MagicUtoc)
                 {
                     throw new Exception("magic word of .utoc file was not found");
