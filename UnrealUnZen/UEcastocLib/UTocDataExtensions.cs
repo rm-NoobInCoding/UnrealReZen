@@ -152,10 +152,7 @@ namespace UEcastocLib
                 {
                     throw new Exception("compressed block entry size was incorrect");
                 }
-                if(header.ContainerFlags != 0 && header.ContainerFlags.HasFlag(EIoContainerFlags.SignedContainerFlag))
-                {
-                    //throw new Exception("the unreal engine dictates that this is an error. No idea why (yet)... Sorry!");
-                }
+
                 return header;
             }
         }
