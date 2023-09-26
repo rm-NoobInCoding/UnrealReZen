@@ -85,13 +85,21 @@ namespace UEcastocLib
                     foreach (var b in v.CompressionBlocks)
                     {
                         openUcas.Seek((long)b.GetOffset(), SeekOrigin.Begin);
-                        byte[] buf = new byte[b.GetCompressedSize()];
-                        int readBytes = openUcas.Read(buf, 0, buf.Length);
+                        byte[] buf = new byte[utoc.IsEncrypted() ? Helpers.Align(b.GetCompressedSize(), 16) : b.GetCompressedSize()];
 
-                        if (readBytes != b.GetCompressedSize())
+                        openUcas.Read(buf, 0, buf.Length);
+
+                        if (utoc.IsEncrypted())
+                        {
+                            var temp = Helpers.DecryptAES(buf, utoc.aesKey);
+                            buf = new byte[b.GetCompressedSize()];
+                            Array.Copy(temp, buf, buf.Length);
+                        }
+
+                        /*if (readBytes != b.GetCompressedSize())
                         {
                             throw new Exception("Could not read the correct size");
-                        }
+                        }*/
 
                         compressionBlockData.Add(buf);
                     }

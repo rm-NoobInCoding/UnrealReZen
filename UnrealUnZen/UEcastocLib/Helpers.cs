@@ -14,7 +14,8 @@ namespace UEcastocLib
             {
                 aesAlg.Key = AESKey;
                 aesAlg.Mode = CipherMode.ECB;
-                aesAlg.Padding = PaddingMode.None;
+                aesAlg.Padding = PaddingMode.Zeros;
+                //aesAlg.IV = new byte[16];
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
@@ -105,6 +106,11 @@ namespace UEcastocLib
         public static byte[] UInt32ToBytes(uint a)
         {
             return BitConverter.GetBytes(a);
+        }
+
+        public static long Align(uint ptr, int alignment)
+        {
+            return ptr + alignment - 1 & ~(alignment - 1);
         }
     }
 }
