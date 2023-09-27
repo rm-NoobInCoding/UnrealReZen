@@ -231,9 +231,7 @@ namespace UEcastocLib
             {
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    var Hash = new FIoChunkHash();
-                    Hash.Hash = reader.ReadBytes(20);
-                    Hash.Padding = reader.ReadBytes(12);
+                    var Hash = new FIoChunkHash(reader.ReadBytes(20), reader.ReadBytes(12));
                     var Flag = (FIoStoreTocEntryMetaFlags)reader.ReadByte();
                     var Chunk = new FIoStoreTocEntryMeta();
                     Chunk.ChunkHash = Hash;

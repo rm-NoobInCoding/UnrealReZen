@@ -27,7 +27,7 @@ namespace UEcastocLib
         [JsonProperty("packageID")]
         public ulong ThisPackageID { get; set; }
 
-        [JsonProperty("dependencies")]
+        [JsonProperty("ChunkIDToDependencies")]
         public Dictionary<ulong, FileDependency> ChunkIDToDependencies { get; set; }
     }
 
@@ -49,6 +49,16 @@ namespace UEcastocLib
         //    Padding = padding;
         //    NumberOfIDsAgain = numberOfIDsAgain;
         //}
+        public void Write(MemoryStream ms)
+        {
+            ms.Write(ThisPackageID);
+            ms.Write(NumberOfIDs);
+            ms.Write(IDSize);
+            ms.Write(Padding);
+            ms.Write(ZeroBytes);
+            ms.Write(NumberOfIDsAgain);
+
+        }
     }
 
 
@@ -63,6 +73,15 @@ namespace UEcastocLib
         public static int SizeOf()
         {
             return sizeof(ulong) * 2 + sizeof(uint) * 4;
+        }
+        public void Write(MemoryStream br)
+        {
+            br.Write(FileSize);
+            br.Write(ExportObjects);
+            br.Write(MostlyOne);
+            br.Write(SomeIndex);
+            br.Write(DependencyPackages);
+            br.Write(Offset);
         }
     }
 

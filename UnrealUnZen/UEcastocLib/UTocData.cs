@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows;
 
 namespace UEcastocLib
 {
@@ -30,7 +31,6 @@ namespace UEcastocLib
 
             if (depFile == null)
             {
-                Console.WriteLine(depFile.FilePath);
                 new Exception("Could not derive dependencies");
             }
 
@@ -41,6 +41,7 @@ namespace UEcastocLib
                 foreach (var block in depFile.CompressionBlocks)
                 {
                     openUcas.Seek((long)block.GetOffset(), SeekOrigin.Begin);
+                    MessageBox.Show((long)block.GetOffset() + " " + block.GetCompressedSize() + " " + block.GetUncompressedSize());
                     byte[] buf = new byte[block.GetCompressedSize()];
                     int readBytes = openUcas.Read(buf, 0, (int)block.GetCompressedSize());
 
