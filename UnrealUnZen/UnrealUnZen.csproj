@@ -54,6 +54,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CustomMarshalers" />
+    <Reference Include="DotNetZip, Version=1.16.0.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotNetZip.1.16.0\lib\net40\DotNetZip.dll</HintPath>
+    </Reference>
     <Reference Include="LZ4, Version=1.0.15.93, Culture=neutral, PublicKeyToken=62e1b5ec1eec9bdd, processorArchitecture=MSIL">
       <HintPath>..\packages\lz4net.1.0.15.93\lib\net4-client\LZ4.dll</HintPath>
     </Reference>
@@ -84,6 +87,8 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\BinaryReader.cs" />
+    <Compile Include="Helpers\MemoryStream.cs" />
     <Compile Include="UEcastocLib\Manifest.cs" />
     <Compile Include="UEcastocLib\Compressions.cs" />
     <Compile Include="UEcastocLib\FIoStoreStructs.cs" />
@@ -92,7 +97,7 @@
     <Compile Include="UEcastocLib\Oodle\Oodle.cs" />
     <Compile Include="UEcastocLib\Oodle\OodleCompressionLevel.cs" />
     <Compile Include="UEcastocLib\Oodle\OodleFormat.cs" />
-    <Compile Include="UEcastocLib\pack.cs" />
+    <Compile Include="UEcastocLib\Pack.cs" />
     <Compile Include="UEcastocLib\UCas.cs" />
     <Compile Include="UEcastocLib\UTocDataExtensions.cs" />
     <Compile Include="UEcastocLib\UTocData.cs" />

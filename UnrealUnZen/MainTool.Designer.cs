@@ -175,7 +175,7 @@
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(144, 45);
             this.button6.TabIndex = 14;
-            this.button6.Text = "Repack Files\r\n(not working yet)";
+            this.button6.Text = "Repack Files\r\n(experimental)";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
             // 

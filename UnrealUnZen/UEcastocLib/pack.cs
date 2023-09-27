@@ -3,379 +3,426 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace UEcastocLib
 {
-    //public class Pack
-    //{
-    //    const int CompSize = 0x10000;
-    //    const int PackUtocVersion = 3;
-    //    const int CompressionNameLength = 32;
+    public static class Packer
+    {
+        const int CompSize = 0x10000;
+        const int PackUtocVersion = 3;
+        const int CompressionNameLength = 32;
 
-    //    public static List<GameFileMetaData> ListFilesInDir(string dir, Dictionary<string, FIoChunkID> pathToChunkID)
-    //    {
-    //        var files = new List<GameFileMetaData>();
-    //        Directory.GetFiles(dir, "*", SearchOption.AllDirectories).ToList().ForEach(path =>
-    //        {
-    //            var info = new FileInfo(path);
-    //            var mountedPath = Path.GetFullPath(path).Replace("\\", "/").Substring(dir.Length).TrimStart('/');
-    //            var offlen = new FIoOffsetAndLength();
-    //            offlen.SetLength((ulong)info.Length);
+        private static Manifest ReadManifest(string manifestPath)
+        {
 
-    //            if (!pathToChunkID.TryGetValue(mountedPath, out var chidData))
-    //            {
-    //                throw new Exception("A problem occurred while constructing the file. Did you use the correct manifest file?");
-    //            }
+            string json = File.ReadAllText(manifestPath);
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<Manifest>(json);
 
-    //            var newEntry = new GameFileMetaData
-    //            {
-    //                FilePath = mountedPath,
-    //                ChunkID = chidData,
-    //                OffLen = offlen
-    //            };
+        }
+        public static int PackGameFiles(string dirPath, string manifestPath, string outFile, string compressionMethod, string AESKey)
+        {
+            dirPath = Path.GetFullPath(dirPath);
+            outFile = Path.ChangeExtension(outFile, null); // Remove any extension
 
-    //            files.Add(newEntry);
-    //        });
+            string compression = "None";
+            if (!string.IsNullOrEmpty(compressionMethod))
+            {
+                compression = compressionMethod;
+            }
 
-    //        return files;
-    //    }
+            byte[] aes = Helpers.HexStringToByteArray(AESKey);
+            if (aes.Length > 0 && aes.Length != 32)
+            {
+                throw new Exception("AES key length should be 32 bytes or none at all");
+            }
 
-    //    public static void PackFilesToUcas(List<GameFileMetaData> files, Manifest m, string dir, string outFilename, string compression)
-    //    {
-    //        /* manually add the "dependencies" section here */
-    //        // only include the dependencies that are present
-    //        var subsetDependencies = files.Select(v => m.Deps.ChunkIDToDependencies[v.ChunkID.ID]).ToDictionary(k => k.ID, v => v);
-    //        m.Deps.ChunkIDToDependencies = subsetDependencies;
+            Manifest manifest = ReadManifest(manifestPath);
+            if (manifest == null)
+            {
+                throw new Exception("Manifest read is null");
+            }
 
-    //        var depHexString = files.FirstOrDefault(v => v.FilePath == Constants.DepFileName)?.ChunkID;
-    //        var compMethodNumber = compression.ToLower() != "none" ? (byte)1 : (byte)0;
-    //        var compFun = CompressionUtils.GetCompressionFunction(compression);
+            int n = PackToCasToc(dirPath, manifest, outFile, compression, aes);
 
-    //        if (compFun == null)
-    //        {
-    //            throw new Exception("Could not find compression method. Please use none, oodle or zlib");
-    //        }
+            // Write the embedded .pak file
+            byte[] embedded = File.ReadAllBytes("req/Packed_P.pak");
+            File.WriteAllBytes(outFile + ".pak", embedded);
+            return n - 1;
+        }
 
-    //        Directory.CreateDirectory(Path.GetDirectoryName(outFilename));
-    //        using (var f = File.Create(outFilename + ".ucas"))
-    //        {
-    //            foreach (var file in files)
-    //            {
-    //                var b = File.ReadAllBytes(Path.Combine(dir, file.FilePath));
+        public static List<GameFileMetaData> ListFilesInDir(string dir, Dictionary<string, FIoChunkID> pathToChunkID)
+        {
+            var files = new List<GameFileMetaData>();
+            Directory.GetFiles(dir, "*", SearchOption.AllDirectories).ToList().ForEach(path =>
+            {
+                var info = new FileInfo(path);
+                var mountedPath = Path.GetFullPath(path).Replace("\\", "/").Substring(dir.Length).TrimStart('/');
+                var offlen = new FIoOffsetAndLength();
+                offlen.SetLength((ulong)info.Length);
 
-    //                if (!File.Exists(file.FilePath))
-    //                {
-    //                    if(file.FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, but the filepath indicates it's the dependency file.");
-    //                    b = m.Deps.DeparseDependencies();
-    //                    file.FilePath = "";
-    //                    file.ChunkID = FIoChunkID.FromHexString(depHexString);
-    //                }
+                if (!pathToChunkID.TryGetValue(mountedPath, out var chidData))
+                {
+                    throw new Exception("A problem occurred while constructing the file. Did you use the correct manifest file?");
+                }
 
-                    
+                var newEntry = new GameFileMetaData
+                {
+                    FilePath = mountedPath,
+                    ChunkID = chidData,
+                    OffLen = offlen
+                };
 
-    //                file.offlen.Length = (ulong)b.Length;
-    //                file.offlen.Offset = files.IndexOf(file) == 0
-    //                    ? 0
-    //                    : (((long)files[files.IndexOf(file) - 1].offlen.Offset + (long)files[files.IndexOf(file) - 1].offlen.Length + CompSize - 1) / CompSize) * CompSize;
+                files.Add(newEntry);
+            });
 
-    //                file.metadata.ChunkHash = Sha1Hash(b);
-    //                file.metadata.Flags = 1;
+            return files;
+        }
 
-    //                while (b.Length != 0)
-    //                {
-    //                    var chunkLen = b.Length > CompSize ? CompSize : b.Length;
-    //                    var chunk = new byte[chunkLen];
-    //                    Array.Copy(b, chunk, chunkLen);
+        public static void PackFilesToUcas(this List<GameFileMetaData> files, Manifest m, string dir, string outFilename, string compression)
+        {
+            /* manually add the "dependencies" section here */
+            // only include the dependencies that are present
+            var subsetDependencies = new Dictionary<ulong, FileDependency>();
+            if (m.Deps.ChunkIDToDependencies.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    if (m.Deps.ChunkIDToDependencies.ContainsKey(file.ChunkID.ID))
+                    {
+                        subsetDependencies.Add(file.ChunkID.ID, m.Deps.ChunkIDToDependencies[file.ChunkID.ID]);
 
-    //                    var cChunkPtr = compFun(chunk);
-    //                    var compressedChunk = cChunkPtr.ToArray();
+                    }
 
-    //                    var block = new FIoStoreTocCompressedBlockEntry
-    //                    {
-    //                        CompressionMethod = compMethodNumber,
-    //                        Offset = (ulong)f.Position,
-    //                        UncompressedSize = (uint)chunkLen,
-    //                        CompressedSize = (uint)compressedChunk.Length
-    //                    };
+                }
+            }
 
-    //                    compressedChunk = compressedChunk.Concat(GetRandomBytes((0x10 - (compressedChunk.Length % 0x10)) & (0x10 - 1))).ToArray();
-    //                    b = b.Skip(chunkLen).ToArray();
-    //                    file.compressionBlocks.Add(block);
+            m.Deps.ChunkIDToDependencies = subsetDependencies;
 
-    //                    f.Write(compressedChunk, 0, compressedChunk.Length);
-    //                }
-    //            }
-    //        }
-    //    }
+            var depHexString = m.Files.FirstOrDefault(v => v.Filepath == Constants.DepFileName).ChunkID;
+            var compMethodNumber = compression.ToLower() != "none" ? (byte)1 : (byte)0;
+            var compFun = CompressionUtils.GetCompressionFunction(compression);
 
-    //    public static byte[] ToBytes(DirIndexWrapper w)
-    //    {
-    //        using (var buf = new MemoryStream())
-    //        {
-    //            var dirCount = (uint)w.dirs.Count;
-    //            var fileCount = (uint)w.files.Count;
-    //            var strCount = (uint)w.strSlice.Count;
+            if (compFun == null)
+            {
+                throw new Exception("Could not find " + compression + " method. Please use none, oodle or zlib");
+            }
 
-    //            var mountPointStr = StringToFString(MountPoint);
-    //            buf.Write(mountPointStr, 0, mountPointStr.Length);
+            Directory.CreateDirectory(Path.GetDirectoryName(outFilename));
+            using (var f = File.Create(outFilename + ".ucas"))
+            {
+                for (int i = 0; i < files.Count; i++)
+                {
+                    byte[] b;
+                    string pathToread = dir.Replace("/", "\\") + files[i].FilePath.Replace("/", "\\");
+                    if (!File.Exists(pathToread))
+                    {
+                        if (files[i].FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, and also its not the dependency file.");
+                        b = m.Deps.DeparseDependencies();
+                        files[i].FilePath = "";
+                        files[i].ChunkID = FIoChunkID.FromHexString(depHexString);
+                        files[i].ChunkID.ID = Helpers.RandomUlong(); //it must be random for packing
+                    }
+                    else
+                    {
+                        b = File.ReadAllBytes(pathToread);
+                    }
+                    files[i].OffLen.SetLength((ulong)b.Length);
 
-    //            buf.Write(BitConverter.GetBytes(dirCount), 0, 4);
-    //            foreach (var directoryEntry in w.dirs)
-    //            {
-    //                var buffer = new byte[Marshal.SizeOf(directoryEntry)];
-    //                var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-    //                Marshal.StructureToPtr(directoryEntry, handle.AddrOfPinnedObject(), false);
-    //                handle.Free();
-    //                buf.Write(buffer, 0, buffer.Length);
-    //            }
+                    if (i == 0)
+                    {
+                        files[i].OffLen.SetOffset(0);
+                    }
+                    else
+                    {
+                        var off = files[i - 1].OffLen.GetOffset() + files[i - 1].OffLen.GetLength();
+                        off = ((off + CompSize - 1) / CompSize) * CompSize;
+                        files[i].OffLen.SetOffset(off);
+                    }
 
-    //            buf.Write(BitConverter.GetBytes(fileCount), 0, 4);
-    //            foreach (var fileEntry in w.files)
-    //            {
-    //                var buffer = new byte[Marshal.SizeOf(fileEntry)];
-    //                var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-    //                Marshal.StructureToPtr(fileEntry, handle.AddrOfPinnedObject(), false);
-    //                handle.Free();
-    //                buf.Write(buffer, 0, buffer.Length);
-    //            }
+                    files[i].Metadata.ChunkHash = new FIoChunkHash(Helpers.SHA1Hash(b));
+                    files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
-    //            buf.Write(BitConverter.GetBytes(strCount), 0, 4);
-    //            foreach (var str in w.strSlice)
-    //            {
-    //                var strBytes = StringToFString(str);
-    //                buf.Write(strBytes, 0, strBytes.Length);
-    //            }
+                    while (b.Length != 0)
+                    {
+                        var block = new FIoStoreTocCompressedBlockEntry();
+                        var chunkLen = b.Length; //19082
+                        if (chunkLen > CompSize)
+                        {
+                            chunkLen = CompSize;
+                        }
+                        var chunk = new byte[chunkLen];
+                        Array.Copy(b, chunk, chunkLen);
 
-    //            return buf.ToArray();
-    //        }
-    //    }
+                        var cChunkPtr = compFun(chunk);
+                        var compressedChunk = cChunkPtr.ToArray();
 
-    //    public static byte[] DeparseDirectoryIndex(List<GameFileMetaData> files)
-    //    {
-    //        var wrapper = new DirIndexWrapper();
-    //        var dirIndexEntries = new List<FIoDirectoryIndexEntry>();
-    //        var fileIndexEntries = new List<FIoFileIndexEntry>();
+                        block.CompressionMethod = compMethodNumber;
+                        block.SetOffset((ulong)f.Position);
+                        block.SetUncompressedSize((uint)chunkLen);
+                        block.SetCompressedSize((uint)compressedChunk.Length);
 
-    //        var strmap = new Dictionary<string, bool>();
-    //        foreach (var v in files)
-    //        {
-    //            var dirfiles = v.filepath.Split('/');
-    //            if (dirfiles[0] == "")
-    //            {
-    //                dirfiles = dirfiles.Skip(1).ToArray();
-    //            }
+                        compressedChunk = compressedChunk.Concat(Helpers.GetRandomBytes((0x10 - (compressedChunk.Length % 0x10)) & (0x10 - 1))).ToArray();
+                        b = b.Skip(chunkLen).ToArray();
+                        files[i].CompressionBlocks.Add(block);
 
-    //            foreach (var str in dirfiles)
-    //            {
-    //                strmap[str] = true;
-    //            }
-    //        }
+                        f.Write(compressedChunk, 0, compressedChunk.Length);
+                    }
+                }
+            }
+        }
 
-    //        var strSlice = strmap.Keys.ToList();
-    //        var strIdx = strSlice.Select((str, i) => new { str, i }).ToDictionary(x => x.str, x => x.i);
-    //        var root = new FIoDirectoryIndexEntry
-    //        {
-    //            Name = NoneEntry,
-    //            FirstChildEntry = NoneEntry,
-    //            NextSiblingEntry = NoneEntry,
-    //            FirstFileEntry = NoneEntry,
-    //        };
+        public static byte[] ToBytes(this DirIndexWrapper w)
+        {
+            MemoryStream output = new MemoryStream();
 
-    //        dirIndexEntries.Add(root);
-    //        wrapper.dirs = dirIndexEntries;
-    //        wrapper.files = fileIndexEntries;
-    //        wrapper.strTable = strIdx;
-    //        wrapper.strSlice = strSlice;
+            uint dirCount = (uint)w.Dirs.Count;
+            uint fileCount = (uint)w.Files.Count;
+            uint strCount = (uint)w.StrSlice.Count();
 
-    //        for (var i = 0; i < files.Count; i++)
-    //        {
-    //            var fpathSections = files[i].filepath.Split('/');
-    //            if (fpathSections[0] == "")
-    //            {
-    //                fpathSections = fpathSections.Skip(1).ToArray();
-    //            }
+            // Mount point string
+            byte[] mountPointStr = Helpers.StringToFString(Constants.MountPoint);
+            output.Write(mountPointStr);
 
-    //            root.AddFile(fpathSections, (uint)i, wrapper);
-    //        }
+            // Directory index entries
+            output.Write(dirCount);
+            foreach (FIoDirectoryIndexEntry directoryEntry in w.Dirs)
+            {
+                directoryEntry.Write(output);
+            }
 
-    //        using (var buf = new MemoryStream())
-    //        {
-    //            foreach (var directoryEntry in wrapper.dirs)
-    //            {
-    //                var buffer = new byte[Marshal.SizeOf(directoryEntry)];
-    //                var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-    //                Marshal.StructureToPtr(directoryEntry, handle.AddrOfPinnedObject(), false);
-    //                handle.Free();
-    //                buf.Write(buffer, 0, buffer.Length);
-    //            }
+            // File index entries
+            output.Write(fileCount);
+            foreach (FIoFileIndexEntry fileEntry in w.Files)
+            {
+                fileEntry.Write(output);
+            }
 
-    //            return buf.ToArray();
-    //        }
-    //    }
+            // String table
+            output.Write(strCount);
+            foreach (string str in w.StrSlice)
+            {
+                byte[] strBytes = Helpers.StringToFString(str);
+                output.Write(strBytes);
+            }
 
-    //    public static byte[] ConstructUtocFile(List<GameFileMetaData> files, string compression, byte[] AESKey)
-    //    {
-    //        var udata = new UTocData();
-    //        var newContainerFlags = (byte)IndexedContainerFlag;
-    //        var compressionMethods = new List<string> { "None" };
+            return output.ToArray();
+        }
 
-    //        if (compression.ToLower() != "none")
-    //        {
-    //            compressionMethods.Add(compression);
-    //            newContainerFlags |= (byte)CompressedContainerFlag;
-    //        }
+        public static byte[] DeparseDirectoryIndex(List<GameFileMetaData> files)
+        {
+            var wrapper = new DirIndexWrapper();
+            var dirIndexEntries = new List<FIoDirectoryIndexEntry>();
+            var fileIndexEntries = new List<FIoFileIndexEntry>();
 
-    //        if (AESKey.Length != 0)
-    //        {
-    //            newContainerFlags |= (byte)EncryptedContainerFlag;
-    //        }
+            // first, create unique slice of strings
+            var strmap = new Dictionary<string, bool>();
+            foreach (var v in files)
+            {
+                var dirfiles = v.FilePath.Split('/');
+                if (dirfiles[0] == "")
+                {
+                    dirfiles = dirfiles.Skip(1).ToArray();
+                }
 
-    //        var compressedBlocksCount = files.Select(file => file.compressionBlocks.Count).Sum();
-    //        var containerIndex = 0;
+                foreach (var str in dirfiles)
+                {
+                    strmap[str] = true;
+                }
+            }
 
-    //        for (var i = 0; i < files.Count; i++)
-    //        {
-    //            compressedBlocksCount += files[i].compressionBlocks.Count;
-    //            if (files[i].chunkID.Type == 10)
-    //            {
-    //                containerIndex = i;
-    //            }
-    //        }
+            var strSlice = strmap.Keys.ToList();
+            // of this, create a map for quick lookup
+            var strIdx = new Dictionary<string, int>();
+            for (int iv = 0; iv < strSlice.Count; iv++)
+            {
+                strIdx.Add(strSlice[iv], iv);
+            }
 
-    //        var dirIndexBytes = DeparseDirectoryIndex(files);
-    //        var magic = new byte[16];
-    //        for (var i = 0; i < MagicUtoc.Length; i++)
-    //        {
-    //            magic[i] = MagicUtoc[i];
-    //        }
 
-    //        udata.hdr = new UTocHeader
-    //        {
-    //            Magic = magic,
-    //            Version = 3,
-    //            HeaderSize = (uint)Marshal.SizeOf(udata.hdr),
-    //            EntryCount = (uint)files.Count,
-    //            CompressedBlockEntryCount = compressedBlocksCount,
-    //            CompressedBlockEntrySize = 12,
-    //            CompressionMethodNameCount = (uint)(compressionMethods.Count - 1),
-    //            CompressionMethodNameLength = CompressionNameLength,
-    //            CompressionBlockSize = CompSize,
-    //            DirectoryIndexSize = (uint)dirIndexBytes.Length,
-    //            ContainerID = (FIoContainerID)files[containerIndex].chunkID.ID,
-    //            ContainerFlags = (EIoContainerFlags)newContainerFlags,
-    //            PartitionSize = ulong.MaxValue,
-    //            PartitionCount = 1
-    //        };
+            var root = new FIoDirectoryIndexEntry
+            {
+                Name = Constants.NoneEntry,
+                FirstChildEntry = Constants.NoneEntry,
+                NextSiblingEntry = Constants.NoneEntry,
+                FirstFileEntry = Constants.NoneEntry,
+            };
 
-    //        using (var buf = new MemoryStream())
-    //        {
-    //            var headerBytes = new byte[Marshal.SizeOf(udata.hdr)];
-    //            var headerHandle = GCHandle.Alloc(headerBytes, GCHandleType.Pinned);
-    //            Marshal.StructureToPtr(udata.hdr, headerHandle.AddrOfPinnedObject(), false);
-    //            headerHandle.Free();
-    //            buf.Write(headerBytes, 0, headerBytes.Length);
+            dirIndexEntries.Add(root);
+            wrapper.Dirs = dirIndexEntries;
+            wrapper.Files = fileIndexEntries;
+            wrapper.StrTable = strIdx;
+            wrapper.StrSlice = strSlice.ToArray();
 
-    //            foreach (var file in files)
-    //            {
-    //                var chunkIDBytes = BitConverter.GetBytes(file.chunkID.ID);
-    //                buf.Write(chunkIDBytes, 0, chunkIDBytes.Length);
-    //            }
+            for (var i = 0; i < files.Count; i++)
+            {
+                var fpathSections = files[i].FilePath.Split('/');
+                if (fpathSections[0] == "")
+                {
+                    fpathSections = fpathSections.Skip(1).ToArray();
+                }
 
-    //            foreach (var file in files)
-    //            {
-    //                var offlenBytes = new byte[Marshal.SizeOf(file.offlen)];
-    //                var offlenHandle = GCHandle.Alloc(offlenBytes, GCHandleType.Pinned);
-    //                Marshal.StructureToPtr(file.offlen, offlenHandle.AddrOfPinnedObject(), false);
-    //                offlenHandle.Free();
-    //                buf.Write(offlenBytes, 0, offlenBytes.Length);
-    //            }
+                root.AddFile(fpathSections, (uint)i, wrapper);
+            }
 
-    //            foreach (var file in files)
-    //            {
-    //                foreach (var block in file.compressionBlocks)
-    //                {
-    //                    var blockBytes = new byte[Marshal.SizeOf(block)];
-    //                    var blockHandle = GCHandle.Alloc(blockBytes, GCHandleType.Pinned);
-    //                    Marshal.StructureToPtr(block, blockHandle.AddrOfPinnedObject(), false);
-    //                    blockHandle.Free();
-    //                    buf.Write(blockBytes, 0, blockBytes.Length);
-    //                }
-    //            }
+            return wrapper.ToBytes();
+        }
 
-    //            foreach (var compMethod in compressionMethods)
-    //            {
-    //                if (compMethod.ToLower() == "none")
-    //                {
-    //                    continue;
-    //                }
+        public static byte[] ConstructUtocFile(this List<GameFileMetaData> files, string compression, byte[] AESKey)
+        {
+            var udata = new UTocData
+            {
+                Header = new UTocHeader(),
+                Files = new List<GameFileMetaData>(),
+                MountPoint = "",
+                CompressionMethods = new List<string>()
+            };
 
-    //                var capitalized = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(compMethod);
-    //                var bname = Encoding.ASCII.GetBytes(capitalized);
-    //                var paddedName = new byte[CompressionNameLength];
-    //                Array.Copy(bname, paddedName, bname.Length);
-    //                buf.Write(paddedName, 0, paddedName.Length);
-    //            }
+            var newContainerFlags = (byte)EIoContainerFlags.IndexedContainerFlag;
+            var compressionMethods = new List<string> { "None" };
 
-    //            buf.Write(dirIndexBytes, 0, dirIndexBytes.Length);
+            if (compression.ToLower() != "none")
+            {
+                compressionMethods.Add(compression);
+                newContainerFlags |= (byte)EIoContainerFlags.CompressedContainerFlag;
+            }
 
-    //            foreach (var file in files)
-    //            {
-    //                var metadataBytes = new byte[Marshal.SizeOf(file.metadata)];
-    //                var metadataHandle = GCHandle.Alloc(metadataBytes, GCHandleType.Pinned);
-    //                Marshal.StructureToPtr(file.metadata, metadataHandle.AddrOfPinnedObject(), false);
-    //                metadataHandle.Free();
-    //                buf.Write(metadataBytes, 0, metadataBytes.Length);
-    //            }
+            if (AESKey.Length != 0)
+            {
+                newContainerFlags |= (byte)EIoContainerFlags.EncryptedContainerFlag;
+            }
 
-    //            return buf.ToArray();
-    //        }
-    //    }
+            var compressedBlocksCount = (int)0;
+            var containerIndex = 0;
 
-    //    public static int PackToCasToc(string dir, Manifest m, string outFilename, string compression, byte[] aes)
-    //    {
-    //        var offlen = new FIoOffsetAndLength();
-    //        var fdata = new List<GameFileMetaData>();
-    //        GameFileMetaData newEntry;
+            for (var i = 0; i < files.Count; i++)
+            {
+                compressedBlocksCount += files[i].CompressionBlocks.Count;
+                if (files[i].ChunkID.Type == 10)
+                {
+                    containerIndex = i;
+                }
+            }
 
-    //        foreach (var v in m.Files)
-    //        {
-    //            var p = Path.Combine(dir, v.Filepath);
-    //            if (File.Exists(p))
-    //            {
-    //                offlen.Length = (ulong)new FileInfo(p).Length;
-    //            }
-    //            else if (v.Filepath == DepFileName)
-    //            {
-    //                offlen.Length = 0; // Will be fixed in a later function
-    //            }
+            var dirIndexBytes = DeparseDirectoryIndex(files);
 
-    //            newEntry = new GameFileMetaData
-    //            {
-    //                filepath = v.Filepath,
-    //                chunkID = FromHexString(v.ChunkID),
-    //                offlen = offlen
-    //            };
+            udata.Header = new UTocHeader
+            {
+                Magic = Constants.MagicUtoc,
+                Version = PackUtocVersion,
+                HeaderSize = (uint)udata.Header.SizeOf(),
+                EntryCount = (uint)files.Count,
+                CompressedBlockEntryCount = (uint)compressedBlocksCount,
+                CompressedBlockEntrySize = 12,
+                CompressionMethodNameCount = (uint)(compressionMethods.Count - 1),
+                CompressionMethodNameLength = CompressionNameLength,
+                CompressionBlockSize = CompSize,
+                DirectoryIndexSize = (uint)dirIndexBytes.Length,
+                ContainerID = new FIoContainerID(files[containerIndex].ChunkID.ID),
+                ContainerFlags = (EIoContainerFlags)newContainerFlags,
+                PartitionSize = ulong.MaxValue,
+                PartitionCount = 1
+            };
 
-    //            fdata.Add(newEntry);
-    //        }
+            using (var buf = new MemoryStream())
+            {
 
-    //        var files = ListFilesInDir(dir, m.Files.ToDictionary(k => k.Filepath, v => FromHexString(v.ChunkID)));
+                // write header
+                udata.Header.Write(buf);
 
-    //        PackFilesToUcas(fdata, m, dir, outFilename, compression);
+                // write chunk IDs
+                foreach (var file in files)
+                {
+                    file.ChunkID.Write(buf);
+                }
 
-    //        if (aes.Length != 0)
-    //        {
-    //            var b = File.ReadAllBytes(outFilename + ".ucas");
-    //            var encrypted = EncryptAES(b, aes);
-    //            File.WriteAllBytes(outFilename + ".ucas", encrypted);
-    //        }
+                // write Offset and lengths
+                foreach (var file in files)
+                {
+                    file.OffLen.Write(buf);
+                }
 
-    //        var utocBytes = ConstructUtocFile(fdata, compression, aes);
-    //        File.WriteAllBytes(outFilename + ".utoc", utocBytes);
-    //        return fdata.Count;
-    //    }
+                // write compression blocks
+                foreach (var file in files)
+                {
+                    foreach (var block in file.CompressionBlocks)
+                    {
+                        block.Write(buf);
+                    }
+                }
+
+                // write compression methods, but skip "none"
+                foreach (var compMethod in compressionMethods)
+                {
+                    if (compMethod.ToLower() == "none")
+                    {
+                        continue;
+                    }
+
+                    var capitalized = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(compMethod);
+                    var bname = Encoding.ASCII.GetBytes(capitalized);
+                    var paddedName = new byte[CompressionNameLength];
+                    Array.Copy(bname, paddedName, bname.Length);
+                    buf.Write(paddedName, 0, paddedName.Length);
+                }
+
+                // write directory index
+                buf.Write(dirIndexBytes, 0, dirIndexBytes.Length);
+
+                // write chunk metas
+                foreach (var file in files)
+                {
+                    file.Metadata.Write(buf);
+                }
+
+                return buf.ToArray();
+            }
+        }
+
+        public static int PackToCasToc(string dir, Manifest m, string outFilename, string compression, byte[] aes)
+        {
+            var fdata = new List<GameFileMetaData>();
+            GameFileMetaData newEntry;
+
+            foreach (var v in m.Files)
+            {
+                var offlen = new FIoOffsetAndLength();
+                var p = Path.Combine(dir, v.Filepath);
+                if (File.Exists(p))
+                {
+                    offlen.SetLength((ulong)new FileInfo(p).Length);
+                }
+                else if (v.Filepath == Constants.DepFileName)
+                {
+                    offlen.SetLength(0); // Will be fixed in a later function
+                }
+
+                newEntry = new GameFileMetaData
+                {
+                    FilePath = v.Filepath,
+                    ChunkID = FIoChunkID.FromHexString(v.ChunkID),
+                    OffLen = offlen,
+                    Metadata = new FIoStoreTocEntryMeta(),
+                    CompressionBlocks = new List<FIoStoreTocCompressedBlockEntry>()
+                };
+
+                fdata.Add(newEntry);
+            }
+            //var files = ListFilesInDir(dir, m.Files.ToDictionary(k => k.Filepath, v => FIoChunkID.FromHexString(v.ChunkID)));
+
+            fdata.PackFilesToUcas(m, dir, outFilename, compression);
+
+            if (aes.Length != 0)
+            {
+                var b = File.ReadAllBytes(outFilename + ".ucas");
+                var encrypted = Helpers.EncryptAES(b, aes);
+                File.WriteAllBytes(outFilename + ".ucas", encrypted);
+            }
+
+            var utocBytes = fdata.ConstructUtocFile(compression, aes);
+            File.WriteAllBytes(outFilename + ".utoc", utocBytes);
+            return fdata.Count;
+        }
+    }
 }

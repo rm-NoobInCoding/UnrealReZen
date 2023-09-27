@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using UEcastocLib;
 
@@ -24,7 +23,7 @@ namespace UnrealUnZen
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            comboBox1.SelectedIndex = 0;
+            comboBox1.SelectedIndex = 1;
 
         }
 
@@ -60,7 +59,7 @@ namespace UnrealUnZen
                 }
 
                 treeView1.Nodes.Clear();
-                treeView1.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(tocadd),'\\'));
+                treeView1.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(tocadd), '\\'));
                 button1.Text = "Load TOC (Loaded " + Path.GetFileNameWithoutExtension(tocadd) + ")";
                 button2.Enabled = true;
                 button4.Enabled = true;
@@ -137,7 +136,7 @@ namespace UnrealUnZen
         {
             Directory.CreateDirectory(tocadd + "_Export");
             int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", "");
-            MessageBox.Show(exportcount + " files extracted!");
+            MessageBox.Show(exportcount + " file(s) extracted!");
             //int res = unpackAllGameFiles(tocadd, Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export\\", AESKey.Text);
             //if (res != -1)
             //{
@@ -211,26 +210,27 @@ namespace UnrealUnZen
 
         private void button6_Click(object sender, EventArgs e)
         {
-            //CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-            //dialog.IsFolderPicker = true;
-            //OpenFileDialog openFileDialog = new OpenFileDialog();
-            //openFileDialog.Filter = "Manifest file|*.json";
-            //SaveFileDialog saveFileDialog = new SaveFileDialog();
-            //saveFileDialog.Filter = "utoc file|*.utoc";
-            //if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
-            //{
-            //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
-            //    if (res != -1)
-            //    {
-            //        MessageBox.Show(res + " file packed!");
-            //    }
-            //    else
-            //    {
-            //        IntPtr errorPtr = getError();
-            //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //        MessageBox.Show(res + " : " + errorMessage);
-            //    }
-            //}
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Manifest file|*.json";
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "utoc file|*.utoc";
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                int res = Packer.PackGameFiles(dialog.FileName, openFileDialog.FileName, saveFileDialog.FileName, comboBox1.GetItemText(comboBox1.SelectedItem), AESKey.Text);
+                //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
+                if (res != -1)
+                {
+                    MessageBox.Show(res + " file(s) packed!");
+                }
+                //    else
+                //    {
+                //        IntPtr errorPtr = getError();
+                //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+                //        MessageBox.Show(res + " : " + errorMessage);
+                //    }
+            }
         }
 
         private void label8_Click(object sender, EventArgs e)
