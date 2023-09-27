@@ -1,1 +1,33 @@
+name: Build and Release
 
+on:
+  push:
+    branches:
+      - main  # Replace with the branch you want to trigger the workflow on
+
+jobs:
+  build:
+    runs-on: windows-latest  # Use a Windows runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0  # You can choose the version you need
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Publish
+        run: dotnet publish -c Release -o ./publish
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./publish/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
