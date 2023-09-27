@@ -1,23 +1,37 @@
-name: Build and Release
+name: build and test
 
 on:
   push:
-    branches:
-      - master  # Replace with the branch you want to trigger the workflow on
+  pull_request:
+    branches: [ main ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
+
+env:
+  DOTNET_VERSION: '6.0.401' # The .NET SDK version to use
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-test:
+
+    name: build-and-test-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup dotnet
+    - uses: actions/checkout@v3
+    - name: Setup .NET Core
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
     - name: Install dependencies
       run: dotnet restore
+      
     - name: Build
-      run: dotnet build
-    - name: Test with the dotnet CLI
-      run: dotnet test
+      run: dotnet build --configuration Release --no-restore
+    
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
