@@ -9,7 +9,7 @@ on:
     - '**.csproj'
 
 env:
-  DOTNET_VERSION: '4.7.2' # The .NET SDK version to use
+  DOTNET_VERSION: '3.1.x' # The .NET SDK version to use
 
 jobs:
   build-and-test:
@@ -18,12 +18,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [windows-latest]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
