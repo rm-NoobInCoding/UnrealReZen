@@ -13,7 +13,7 @@ UnealUnZen is a powerful and versatile modding tool designed for the seamless un
 
 - **Effortless Packing:** Streamline the process of repackaging your modified assets back into Unreal Engine Archive files, ensuring compatibility with your favorite games.
 
-- **UEcastoc Integration:** Built upon the robust UEcastoc library, UnealUnZen benefits from its reliability and performance, making it a dependable choice for modding projects.
+- **UEcastoc Integration:** Built upon the robust [UEcastoc](https://github.com/gitMenv/UEcastoc) library, UnealUnZen benefits from its reliability and performance, making it a dependable choice for modding projects.
 
 - **User-Friendly Interface:** The tool's user interface is designed with modders in mind, featuring a straightforward workflow that minimizes complexity and maximizes productivity.
 
