@@ -187,17 +187,10 @@ namespace UnrealUnZen
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
             {
                 int res = Packer.PackGameFiles(dialog.FileName, openFileDialog.FileName, saveFileDialog.FileName, comboBox1.GetItemText(comboBox1.SelectedItem), AESKey.Text);
-                //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
                 if (res != -1)
                 {
                     MessageBox.Show(res + " file(s) packed!");
                 }
-                //    else
-                //    {
-                //        IntPtr errorPtr = getError();
-                //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-                //        MessageBox.Show(res + " : " + errorMessage);
-                //    }
             }
         }
 
