@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Text;
 
 namespace UEcastocLib
 {
@@ -36,7 +36,7 @@ namespace UEcastocLib
         public uint DirectoryIndexSize;                 // uint32
         public uint PartitionCount;                     // uint32
         public FIoContainerID ContainerID;              // FIoContainerID
-        public FGuid EncryptionKeyGuid;                // FGuid
+        public FGuid EncryptionKeyGuid;                 // FGuid
         public EIoContainerFlags ContainerFlags;        // EIoContainerFlags
         public byte[] Reserved1 = new byte[3];          // [3]byte
         public uint TocChunkPerfectHashSeedsCount;      // uint32
@@ -44,9 +44,42 @@ namespace UEcastocLib
         public uint TocChunksWithoutPerfectHashCount;   // uint32
         public byte[] Reserved2 = new byte[44];         // [44]byte
 
+       
+        public void Write(MemoryStream br)
+        {
+            br.Write(Magic, Encoding.UTF8);
+            br.Write(Version);
+            br.Write(Reserved0);
+            br.Write(HeaderSize);
+            br.Write(EntryCount);
+            br.Write(CompressedBlockEntryCount);
+            br.Write(CompressedBlockEntrySize);
+            br.Write(CompressionMethodNameCount);
+            br.Write(CompressionMethodNameLength);
+            br.Write(CompressionBlockSize);
+            br.Write(DirectoryIndexSize);
+            br.Write(PartitionCount);
+            br.Write(ContainerID.Value);
+            br.Write(0);
+            br.Write(0);
+            br.Write(0);
+            br.Write(0);
+            br.Write((byte)ContainerFlags);
+            br.Write(Reserved1);
+            br.Write(TocChunkPerfectHashSeedsCount);
+            br.Write(PartitionSize);
+            br.Write(TocChunksWithoutPerfectHashCount);
+            br.Write(Reserved2);
+
+
+        }
         public bool IsEncrypted()
         {
             return (ContainerFlags & EIoContainerFlags.EncryptedContainerFlag) != 0;
+        }
+        public int SizeOf()
+        {
+            return 144;
         }
     }
 
@@ -82,8 +115,7 @@ namespace UEcastocLib
                 {
                     throw new Exception("Encrypted file, but no AES key was provided! Please pass the AES key as a byte array.");
                 }
-                else
-                    udata.aesKey = aesKey;
+                udata.aesKey = aesKey;
             }
 
             long ReadBefore = (long)udata.Header.HeaderSize;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -11,27 +12,41 @@ namespace UEcastocLib
         public static byte[] DeparseDependencies(this Dependencies d)
         {
             using (var ms = new MemoryStream())
-            using (var writer = new BinaryWriter(ms))
             {
-                var ids = d.ChunkIDToDependencies.Keys.ToList();
-                ids.Sort();
-                var totalNumberOfDependencies = d.ChunkIDToDependencies.Values.Sum(fd => fd.Dependencies.Count);
+
                 var hdr = new DepsHeader
                 {
                     ThisPackageID = d.ThisPackageID,
-                    NumberOfIDs = (ulong)ids.Count,
+                    NumberOfIDs = (ulong)d.ChunkIDToDependencies.Count,
                     IDSize = 8,
                     Padding = new byte[] { 0x00, 0x00, 0x64, 0xC1 },
                     ZeroBytes = new byte[4],
-                    NumberOfIDsAgain = (uint)ids.Count
+                    NumberOfIDsAgain = (uint)d.ChunkIDToDependencies.Count
                 };
-                writer.Write(hdr.ThisPackageID);
+                hdr.Write(ms);
+
+                // write list of IDs
+                var ids = d.ChunkIDToDependencies.Keys.ToList();
+                var totalNumberOfDependencies = 0;
+                foreach (var k in d.ChunkIDToDependencies)
+                {
+                    totalNumberOfDependencies += k.Value.Dependencies.Count;
+                }
+
+                // these IDs are stored in order in this file, so sort here and use this ordering
+                ids.Sort();
+                ids.Reverse();
+
                 foreach (var id in ids)
                 {
-                    writer.Write(id);
+                    ms.Write(id);
                 }
-                var flength = (uint)(ids.Count * DepLinks.SizeOf()) + totalNumberOfDependencies * 8;
-                writer.Write(flength);
+
+                // write file length from this point onwards
+                var flength = (uint)(d.ChunkIDToDependencies.Count * DepLinks.SizeOf()) + totalNumberOfDependencies * 8;
+                ms.Write((uint)flength);
+
+                // write list of DepLinks entries
                 var endOfDeps = flength - (uint)(totalNumberOfDependencies * 8);
                 var depsToWrite = new List<ulong>();
                 for (int i = 0; i < ids.Count; i++)
@@ -54,19 +69,15 @@ namespace UEcastocLib
                         depsToWrite.AddRange(entry.Dependencies);
                         link.Offset = (uint)(target - offsetFieldOffset);
                     }
-                    writer.Write(link.FileSize);
-                    writer.Write(link.ExportObjects);
-                    writer.Write(link.MostlyOne);
-                    writer.Write(link.SomeIndex);
-                    writer.Write(link.DependencyPackages);
-                    writer.Write(link.Offset);
+                    link.Write(ms);
+
                 }
                 foreach (var depLink in depsToWrite)
                 {
-                    writer.Write(depLink);
+                    ms.Write(depLink);
                 }
                 var nulls = (ulong)0;
-                writer.Write(nulls);
+                ms.Write(nulls);
                 return ms.ToArray();
             }
         }
@@ -76,11 +87,12 @@ namespace UEcastocLib
 
             foreach (var v in u.Files)
             {
-                ManifestFile mf = new ManifestFile { Filepath = "/" + v.FilePath.Replace("\\", "/"), ChunkID = v.ChunkID.ToHexString().ToLower() };
+                ManifestFile mf = new ManifestFile { Filepath = v.FilePath.Replace("\\", "/"), ChunkID = v.ChunkID.ToHexString().ToLower() };
                 m.Files.Add(mf);
             }
 
             byte[] data = u.UnpackDependencies(ucasPath);
+            File.WriteAllBytes("t.bin", data);
             m.Deps = ParseDependencies(data);
 
             return m;

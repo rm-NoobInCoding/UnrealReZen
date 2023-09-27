@@ -10,7 +10,7 @@ namespace UEcastocLib
     {
         public const string MagicUtoc = "-==--==--==--==-";
         public const string UnrealSignature = "\xC1\x83\x2A\x9E";
-        public const string MountPoint = "../../../";
+        public static string MountPoint = "../../../";
         public const uint NoneEntry = 0xFFFFFFFF;
         public const string DepFileName = "dependencies";
     }
@@ -231,9 +231,7 @@ namespace UEcastocLib
             {
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    var Hash = new FIoChunkHash();
-                    Hash.Hash = reader.ReadBytes(20);
-                    Hash.Padding = reader.ReadBytes(12);
+                    var Hash = new FIoChunkHash(reader.ReadBytes(20), reader.ReadBytes(12));
                     var Flag = (FIoStoreTocEntryMetaFlags)reader.ReadByte();
                     var Chunk = new FIoStoreTocEntryMeta();
                     Chunk.ChunkHash = Hash;

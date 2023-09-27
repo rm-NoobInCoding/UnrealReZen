@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Windows;
 
 namespace UEcastocLib
 {
@@ -66,6 +66,124 @@ namespace UEcastocLib
             NextSiblingEntry = br.ReadUInt32();
             FirstFileEntry = br.ReadUInt32();
         }
+        public void Write(MemoryStream br)
+        {
+            br.Write(Name);
+            br.Write(FirstChildEntry);
+            br.Write(NextSiblingEntry);
+            br.Write(FirstFileEntry);
+        }
+        public void AddFile(string[] fpathSections, uint fIndex, DirIndexWrapper structure)
+        {
+            if (fpathSections.Length == 0)
+            {
+                return;
+            }
+
+            if (fpathSections.Length == 1)
+            {
+                // Only one item, add file and return; base case
+                string fname = fpathSections[0];
+                uint nameIndex = (uint)structure.StrTable[fname];
+
+                FIoFileIndexEntry newFile = new FIoFileIndexEntry
+                {
+                    Name = nameIndex,
+                    NextFileEntry = Constants.NoneEntry,
+                    UserData = fIndex
+                };
+
+                uint newEntryIndex = (uint)structure.Files.Count();
+                structure.Files.Add(newFile);
+
+                if (FirstFileEntry == Constants.NoneEntry)
+                {
+                    FirstFileEntry = newEntryIndex;
+                }
+                else
+                {
+                    FIoFileIndexEntry fentry = structure.Files[(int)FirstFileEntry];
+
+                    // Filenames (with their path) are unique and will always be added
+                    while (fentry.NextFileEntry != Constants.NoneEntry)
+                    {
+                        fentry = structure.Files[(int)fentry.NextFileEntry];
+                    }
+
+                    fentry.NextFileEntry = newEntryIndex;
+                }
+
+                return;
+            }
+
+            // Recursive case; find directory if present, otherwise add.
+            string currDirName = fpathSections[0];
+            uint currDirNameIndex = (uint)structure.StrTable[currDirName];
+
+            uint possibleNewEntryIndex = (uint)structure.Dirs.Count;
+            if (FirstChildEntry == Constants.NoneEntry)
+            {
+                FIoDirectoryIndexEntry newDirEntry = new FIoDirectoryIndexEntry
+                {
+                    Name = currDirNameIndex,
+                    FirstChildEntry = Constants.NoneEntry,
+                    NextSiblingEntry = Constants.NoneEntry,
+                    FirstFileEntry = Constants.NoneEntry
+                };
+
+                FirstChildEntry = possibleNewEntryIndex;
+                structure.Dirs.Add(newDirEntry);
+                FIoDirectoryIndexEntry currDir = newDirEntry;
+
+                currDir.AddFile(fpathSections.Skip(1).ToArray(), fIndex, structure);
+            }
+            else
+            {
+                FIoDirectoryIndexEntry dentry = structure.Dirs[(int)FirstChildEntry];
+                FIoDirectoryIndexEntry lastDentry = null;
+
+                while (dentry != null && dentry.Name != currDirNameIndex)
+                {
+                    lastDentry = dentry;
+                    dentry = dentry.NextSiblingEntry != Constants.NoneEntry ? structure.Dirs[(int)dentry.NextSiblingEntry] : null;
+                }
+
+                if (dentry != null && dentry.Name == currDirNameIndex)
+                {
+                    // Directory found
+                    dentry.AddFile(fpathSections.Skip(1).ToArray(), fIndex, structure);
+                }
+                else
+                {
+                    // Add new directory
+                    FIoDirectoryIndexEntry newDirEntry = new FIoDirectoryIndexEntry
+                    {
+                        Name = currDirNameIndex,
+                        FirstChildEntry = Constants.NoneEntry,
+                        NextSiblingEntry = Constants.NoneEntry,
+                        FirstFileEntry = Constants.NoneEntry
+                    };
+
+                    if (lastDentry != null)
+                    {
+                        lastDentry.NextSiblingEntry = possibleNewEntryIndex;
+                    }
+                    else
+                    {
+                        FirstChildEntry = possibleNewEntryIndex;
+                    }
+
+                    structure.Dirs.Add(newDirEntry);
+                    FIoDirectoryIndexEntry currDir = newDirEntry;
+
+                    currDir.AddFile(fpathSections.Skip(1).ToArray(), fIndex, structure);
+                }
+            }
+        }
+        public int SizeOf()
+        {
+            return sizeof(uint) * 4;
+        }
     }
 
     public class FIoFileIndexEntry
@@ -80,6 +198,12 @@ namespace UEcastocLib
             NextFileEntry = br.ReadUInt32();
             UserData = br.ReadUInt32();
 
+        }
+        public void Write(MemoryStream br)
+        {
+            br.Write(Name);
+            br.Write(NextFileEntry);
+            br.Write(UserData);
         }
     }
 
@@ -97,7 +221,13 @@ namespace UEcastocLib
             Padding = padding;
             Type = type;
         }
-
+        public void Write(MemoryStream br)
+        {
+            br.Write(ID);
+            br.Write(Index);
+            br.Write(Padding);
+            br.Write(Type);
+        }
         public string ToHexString()
         {
             return $"{ID:X16}{Index:X4}{Padding:X2}{Type:X2}";
@@ -119,17 +249,19 @@ namespace UEcastocLib
 
     public class DirIndexWrapper
     {
-        public FIoDirectoryIndexEntry[] Dirs { get; set; }
-        public FIoFileIndexEntry[] Files { get; set; }
+        public List<FIoDirectoryIndexEntry> Dirs { get; set; }
+        public List<FIoFileIndexEntry>Files { get; set; }
         public Dictionary<string, int> StrTable { get; set; }
         public string[] StrSlice { get; set; }
 
-        public DirIndexWrapper(FIoDirectoryIndexEntry[] dirs, FIoFileIndexEntry[] files, Dictionary<string, int> strTable, string[] strSlice)
+        public DirIndexWrapper(List<FIoDirectoryIndexEntry> dirs, List<FIoFileIndexEntry> files, Dictionary<string, int> strTable, string[] strSlice)
         {
             Dirs = dirs;
             Files = files;
             StrTable = strTable;
             StrSlice = strSlice;
+        }
+        public DirIndexWrapper() { 
         }
     }
 
@@ -147,9 +279,12 @@ namespace UEcastocLib
             UncompressedSize = br.ReadBytes(3);
             CompressionMethod = br.ReadByte();
         }
-        public ulong GetLength()
+        public void Write(MemoryStream br)
         {
-            return GetUncompressedSize();
+            br.Write(Offset);
+            br.Write(CompressedSize);
+            br.Write(UncompressedSize);
+            br.Write(CompressionMethod);
         }
 
         public ulong GetOffset()
@@ -170,20 +305,26 @@ namespace UEcastocLib
 
         public void SetOffset(ulong offset)
         {
-            byte[] offsetBytes = BitConverter.GetBytes(offset);
-            Array.Copy(offsetBytes, Offset, Math.Min(offsetBytes.Length, Offset.Length));
-        }
-
-        public void SetCompressedSize(uint size)
-        {
-            byte[] sizeBytes = BitConverter.GetBytes(size);
-            Array.Copy(sizeBytes, CompressedSize, Math.Min(sizeBytes.Length, CompressedSize.Length));
+            byte[] bytes = new byte[5];
+            for (ulong i = 0; i < 5; i++)
+            {
+                bytes[i] = (byte)((offset >> (int)(i * 8)) & 0xFF);
+            }
+            Array.Copy(bytes, this.Offset, bytes.Length);
         }
 
         public void SetUncompressedSize(uint size)
         {
-            byte[] sizeBytes = BitConverter.GetBytes(size);
-            Array.Copy(sizeBytes, UncompressedSize, Math.Min(sizeBytes.Length, UncompressedSize.Length));
+            UncompressedSize[0] = (byte)(size >> 0);
+            UncompressedSize[1] = (byte)(size >> 8);
+            UncompressedSize[2] = (byte)(size >> 16);
+        }
+
+        public void SetCompressedSize(uint size)
+        {
+            CompressedSize[0] = (byte)(size >> 0);
+            CompressedSize[1] = (byte)(size >> 8);
+            CompressedSize[2] = (byte)(size >> 16);
         }
     }
 
@@ -213,17 +354,27 @@ namespace UEcastocLib
         {
             return (ulong)Length[4] | ((ulong)Length[3] << 8) | ((ulong)Length[2] << 16) | ((ulong)Length[1] << 24) | ((ulong)Length[0] << 32);
         }
-
         public void SetOffset(ulong offset)
         {
-            byte[] offsetBytes = BitConverter.GetBytes(offset);
-            Array.Copy(offsetBytes, Offset, Math.Min(offsetBytes.Length, Offset.Length));
+            Offset[0] = (byte)(offset >> 32);
+            Offset[1] = (byte)(offset >> 24);
+            Offset[2] = (byte)(offset >> 16);
+            Offset[3] = (byte)(offset >> 8);
+            Offset[4] = (byte)(offset >> 0);
         }
 
         public void SetLength(ulong length)
         {
-            byte[] lengthBytes = BitConverter.GetBytes(length);
-            Array.Copy(lengthBytes, Length, Math.Min(lengthBytes.Length, Length.Length));
+            Length[0] = (byte)(length >> 32);
+            Length[1] = (byte)(length >> 24);
+            Length[2] = (byte)(length >> 16);
+            Length[3] = (byte)(length >> 8);
+            Length[4] = (byte)(length >> 0);
+        }
+        public void Write(MemoryStream br)
+        {
+            br.Write(Offset);
+            br.Write(Length);
         }
     }
 
@@ -231,35 +382,25 @@ namespace UEcastocLib
     {
         public FIoChunkHash ChunkHash { get; set; }
         public FIoStoreTocEntryMetaFlags Flags { get; set; }
+        public void Write(MemoryStream br)
+        {
+            br.Write(ChunkHash.Hash);
+            br.Write(ChunkHash.Padding);
+            br.Write((byte)Flags);
+        }
     }
 
     public class FIoChunkHash
     {
         public byte[] Hash { get; set; } = new byte[20];
         public byte[] Padding { get; set; } = new byte[12];
-    }
-
-    public static class ByteArrayExtensions
-    {
-        public static byte[] Concat(this byte[] first, byte[] second)
-        {
-            byte[] result = new byte[first.Length + second.Length];
-            first.CopyTo(result, 0);
-            second.CopyTo(result, first.Length);
-            return result;
+        public FIoChunkHash(byte[] hash) { 
+            Hash = hash;
         }
-    }
-
-    public static class FIoOffsetAndLengthExtensions
-    {
-        public static void SetOffset(this FIoOffsetAndLength offsetAndLength, ulong offset)
+        public FIoChunkHash(byte[] hash, byte[] padding)
         {
-            offsetAndLength.Offset = BitConverter.GetBytes(offset);
-        }
-
-        public static void SetLength(this FIoOffsetAndLength offsetAndLength, ulong length)
-        {
-            offsetAndLength.Length = BitConverter.GetBytes(length);
+            Hash = hash;
+            Padding = padding;
         }
     }
 

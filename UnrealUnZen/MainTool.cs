@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using UEcastocLib;
 
@@ -25,7 +24,7 @@ namespace UnrealUnZen
         private void Form1_Load(object sender, EventArgs e)
         {
             comboBox1.SelectedIndex = 0;
-
+            comboBox2.SelectedIndex = 0;
         }
 
         public static TreeNode MakeTreeFromPaths(List<string> paths, string rootNodeName = "", char separator = '/')
@@ -60,7 +59,7 @@ namespace UnrealUnZen
                 }
 
                 treeView1.Nodes.Clear();
-                treeView1.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(tocadd),'\\'));
+                treeView1.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(tocadd), '\\'));
                 button1.Text = "Load TOC (Loaded " + Path.GetFileNameWithoutExtension(tocadd) + ")";
                 button2.Enabled = true;
                 button4.Enabled = true;
@@ -92,7 +91,7 @@ namespace UnrealUnZen
                         //MessageBox.Show(extpath+ fileObject["Path"]?.ToString().Replace("/", "\\"));
                         string chunkId = fileObject["ChunkId"]?.ToString();
 
-                        if (!File.Exists(extpath + filePath) && filePath != "dependencies")
+                        if (!File.Exists(Path.Combine(extpath, filePath)) && filePath != "dependencies")
                         {
                             // File does not exist, mark it for removal
                             indicesToRemove.Add(i);
@@ -137,7 +136,7 @@ namespace UnrealUnZen
         {
             Directory.CreateDirectory(tocadd + "_Export");
             int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", "");
-            MessageBox.Show(exportcount + " files extracted!");
+            MessageBox.Show(exportcount + " file(s) extracted!");
             //int res = unpackAllGameFiles(tocadd, Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export\\", AESKey.Text);
             //if (res != -1)
             //{
@@ -148,38 +147,6 @@ namespace UnrealUnZen
             //    IntPtr errorPtr = getError();
             //    string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
             //    MessageBox.Show(res + " - " + errorMessage);
-            //}
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            //CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-            //dialog.IsFolderPicker = true;
-            //if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-            //{
-            //    int res = createManifestFile(tocadd, Path.ChangeExtension(tocadd, ".ucas"), "temp.json", AESKey.Text);
-            //    if (res != -1)
-            //    {
-            //        res = packGameFiles(dialog.FileName, "temp.json", Path.GetDirectoryName(tocadd) + "\\" + Path.GetFileNameWithoutExtension(tocadd) + "_new", "Zlib", AESKey.Text);
-            //        if (res != -1)
-            //        {
-            //            File.Delete("temp.json");
-            //            MessageBox.Show("Done!");
-            //        }
-            //        else
-            //        {
-            //            IntPtr errorPtr = getError();
-            //            string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //            MessageBox.Show(res + " : " + errorMessage);
-            //        }
-            //    }
-            //    else
-            //    {
-            //        IntPtr errorPtr = getError();
-            //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //        MessageBox.Show(res + " : " + errorMessage);
-            //    }
-
             //}
         }
 
@@ -205,42 +172,38 @@ namespace UnrealUnZen
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 FixManifest(openFileDialog.FileName, dialog.FileName);
-
+                MessageBox.Show("Done!");
             }
         }
 
         private void button6_Click(object sender, EventArgs e)
         {
-            //CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-            //dialog.IsFolderPicker = true;
-            //OpenFileDialog openFileDialog = new OpenFileDialog();
-            //openFileDialog.Filter = "Manifest file|*.json";
-            //SaveFileDialog saveFileDialog = new SaveFileDialog();
-            //saveFileDialog.Filter = "utoc file|*.utoc";
-            //if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
-            //{
-            //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
-            //    if (res != -1)
-            //    {
-            //        MessageBox.Show(res + " file packed!");
-            //    }
-            //    else
-            //    {
-            //        IntPtr errorPtr = getError();
-            //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //        MessageBox.Show(res + " : " + errorMessage);
-            //    }
-            //}
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Manifest file|*.json";
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "utoc file|*.utoc";
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                int res = Packer.PackGameFiles(dialog.FileName, openFileDialog.FileName, saveFileDialog.FileName, comboBox1.GetItemText(comboBox1.SelectedItem), AESKey.Text);
+                //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
+                if (res != -1)
+                {
+                    MessageBox.Show(res + " file(s) packed!");
+                }
+                //    else
+                //    {
+                //        IntPtr errorPtr = getError();
+                //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
+                //        MessageBox.Show(res + " : " + errorMessage);
+                //    }
+            }
         }
 
-        private void label8_Click(object sender, EventArgs e)
+        private void textBox1_TextChanged(object sender, EventArgs e)
         {
-
-        }
-
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
+            Constants.MountPoint = textBox1.Text;
         }
     }
 }

@@ -46,6 +46,10 @@
             this.label8 = new System.Windows.Forms.Label();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
+            this.label9 = new System.Windows.Forms.Label();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -175,7 +179,7 @@
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(144, 45);
             this.button6.TabIndex = 14;
-            this.button6.Text = "Repack Files\r\n(not working yet)";
+            this.button6.Text = "Repack Files\r\n(experimental)";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
             // 
@@ -187,21 +191,19 @@
             "None",
             "Zlib",
             "Oodle"});
-            this.comboBox1.Location = new System.Drawing.Point(303, 416);
+            this.comboBox1.Location = new System.Drawing.Point(271, 370);
             this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(75, 21);
+            this.comboBox1.Size = new System.Drawing.Size(145, 21);
             this.comboBox1.TabIndex = 15;
-            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(267, 398);
+            this.label8.Location = new System.Drawing.Point(265, 354);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(149, 13);
             this.label8.TabIndex = 16;
             this.label8.Text = "Repack compression Method:";
-            this.label8.Click += new System.EventHandler(this.label8_Click);
             // 
             // statusStrip1
             // 
@@ -219,11 +221,54 @@
             this.toolStripProgressBar1.Size = new System.Drawing.Size(100, 16);
             this.toolStripProgressBar1.ToolTipText = "v";
             // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(265, 394);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(119, 13);
+            this.label9.TabIndex = 18;
+            this.label9.Text = "Repack UTOC Version:";
+            // 
+            // comboBox2
+            // 
+            this.comboBox2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Items.AddRange(new object[] {
+            "2",
+            "3"});
+            this.comboBox2.Location = new System.Drawing.Point(271, 410);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(145, 21);
+            this.comboBox2.TabIndex = 19;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(265, 434);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(67, 13);
+            this.label10.TabIndex = 20;
+            this.label10.Text = "Mount Point:";
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(268, 450);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(148, 20);
+            this.textBox1.TabIndex = 21;
+            this.textBox1.Text = "../../../";
+            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            // 
             // MainTool
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(428, 589);
+            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.label10);
+            this.Controls.Add(this.comboBox2);
+            this.Controls.Add(this.label9);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.comboBox1);
@@ -273,6 +318,10 @@
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressBar1;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.ComboBox comboBox2;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.TextBox textBox1;
     }
 }
 

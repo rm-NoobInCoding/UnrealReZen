@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using Ionic.Zlib;
 using OodleExtensions;
 
 namespace UEcastocLib
@@ -46,7 +47,7 @@ namespace UEcastocLib
 
         public static Func<byte[], byte[]> GetCompressionFunction(string method)
         {
-            if (CompressionMethods.TryGetValue(method.ToLower(), out var compressionFunction))
+            if (CompressionMethods.TryGetValue(method, out var compressionFunction))
             {
                 return compressionFunction;
             }
@@ -60,9 +61,9 @@ namespace UEcastocLib
 
         private static byte[] DecompressZlib(byte[] inData, uint expectedOutputSize)
         {
-            using (var inputStream = new MemoryStream(inData.Skip(2).ToArray()))
+            using (var inputStream = new MemoryStream(inData.ToArray()))
             using (var outputStream = new MemoryStream())
-            using (var decompressionStream = new DeflateStream(inputStream, CompressionMode.Decompress))
+            using (var decompressionStream = new ZlibStream(inputStream, Ionic.Zlib.CompressionMode.Decompress))
             {
                 decompressionStream.CopyTo(outputStream);
                 var uncompressed = outputStream.ToArray();
@@ -104,8 +105,9 @@ namespace UEcastocLib
 
         private static byte[] CompressZlib(byte[] inData)
         {
+            
             using (var outputStream = new MemoryStream())
-            using (var compressionStream = new DeflateStream(outputStream, CompressionLevel.Optimal))
+            using (var compressionStream = new ZlibStream(outputStream, Ionic.Zlib.CompressionMode.Compress))
             {
                 compressionStream.Write(inData, 0, inData.Length);
                 compressionStream.Close();

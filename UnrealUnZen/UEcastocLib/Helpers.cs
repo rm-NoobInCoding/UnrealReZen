@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace UEcastocLib
 {
@@ -15,7 +17,6 @@ namespace UEcastocLib
                 aesAlg.Key = AESKey;
                 aesAlg.Mode = CipherMode.ECB;
                 aesAlg.Padding = PaddingMode.Zeros;
-                //aesAlg.IV = new byte[16];
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
@@ -82,6 +83,14 @@ namespace UEcastocLib
             }
         }
 
+        public static UInt64 RandomUlong()
+        {
+            Random rnd = new Random();
+            int rawsize = System.Runtime.InteropServices.Marshal.SizeOf(ulong.MaxValue);
+            var buffer = new byte[rawsize];
+            rnd.NextBytes(buffer);
+            return BitConverter.ToUInt64(buffer, 0);
+        }
         public static byte[] GetRandomBytes(int n)
         {
             byte[] ret = new byte[n];
