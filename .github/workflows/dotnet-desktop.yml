@@ -31,7 +31,7 @@ jobs:
       run: nuget restore UnrealUnZen/packages.config -PackagesDirectory Packages
       
     - name: Build
-      run: dotnet build --configuration Release --arch x64
+      run: dotnet build --configuration Release
     
     - name: Test
       run: dotnet test --no-restore --verbosity normal
