@@ -35,14 +35,3 @@ jobs:
     
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-      
-    - name: Publish
-      run: dotnet publish -c Release -o ./publish
-
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      with:
-          files: ./publish/**/*
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
