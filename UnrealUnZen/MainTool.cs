@@ -181,7 +181,7 @@ namespace UnrealUnZen
                     MessageBox.Show(res + " file(s) packed!");
                 }
             }
-
+        }
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             Constants.MountPoint = textBox1.Text;
