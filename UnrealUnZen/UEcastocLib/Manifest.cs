@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace UEcastocLib
 {
     public static class ManifestData
     {
         public const string DepFileName = "dependencies";
-
+        public const int UE5_DepFile_Sig = 1232028526;
         public static byte[] DeparseDependencies(this Dependencies d)
         {
             using (var ms = new MemoryStream())
@@ -55,10 +56,10 @@ namespace UEcastocLib
                     var entry = d.ChunkIDToDependencies[id];
                     var link = new DepLinks
                     {
-                        FileSize = entry.FileSize,
+                        FileSize = 0,
                         ExportObjects = entry.ExportObjects,
                         MostlyOne = entry.MostlyOne,
-                        SomeIndex = entry.SomeIndex,
+                        SomeIndex = 0,
                         DependencyPackages = (uint)entry.Dependencies.Count,
                         Offset = 0
                     };
@@ -97,56 +98,103 @@ namespace UEcastocLib
 
             return m;
         }
+
+        public static void GetDep(this List<ulong> Deps, BinaryReader br)
+        {
+            var initialPos = br.BaseStream.Position;
+            int arrayNum = br.ReadInt32();
+            int offset = br.ReadInt32();
+            var continuePos = br.BaseStream.Position;
+            br.BaseStream.Seek(initialPos + offset, SeekOrigin.Begin);
+            for (int i = 0; i < arrayNum; i++)
+            {
+                Deps.Add(br.ReadUInt64());
+            }
+            br.BaseStream.Seek(continuePos, SeekOrigin.Begin);
+        }
+        public static void GetHash(this List<string> Deps, BinaryReader br)
+        {
+            var initialPos = br.BaseStream.Position;
+            int arrayNum = br.ReadInt32();
+            int offset = br.ReadInt32();
+            var continuePos = br.BaseStream.Position;
+            br.BaseStream.Seek(initialPos + offset, SeekOrigin.Begin);
+            for (int i = 0; i < arrayNum; i++)
+            {
+                Deps.Add(BitConverter.ToString(br.ReadBytes(20)).Replace("-", ""));
+            }
+            br.BaseStream.Seek(continuePos, SeekOrigin.Begin);
+        }
+
         public static Dependencies ParseDependencies(byte[] b)
         {
             var s = new ParseDependencies();
             s.IDToConn = new Dictionary<ulong, DepLinks>();
             using (var reader = new BinaryReader(new MemoryStream(b)))
             {
-                s.Hdr = new DepsHeader
+                s.Hdr = new DepsHeader();
+                if (reader.ReadInt32() != UE5_DepFile_Sig)
                 {
-                    ThisPackageID = reader.ReadUInt64(),
-                    NumberOfIDs = reader.ReadUInt64(),
-                    IDSize = reader.ReadUInt32(),
-                    Padding = reader.ReadBytes(4),
-                    ZeroBytes = reader.ReadBytes(4),
-                    NumberOfIDsAgain = reader.ReadUInt32()
-                };
+                    s.Hdr.Version = EIoContainerHeaderVersion.BeforeVersionWasAdded;
+                    reader.BaseStream.Seek(0, SeekOrigin.Begin); //back to start of file for ue4 dep file
+                }
+                else
+                {
+                    s.Hdr.Version = (EIoContainerHeaderVersion)reader.ReadInt32();
+                }
+
+                s.Hdr.ThisPackageID = reader.ReadUInt64();
+                s.Hdr.NumberOfIDs = s.Hdr.Version <= EIoContainerHeaderVersion.OptionalSegmentPackages ? reader.ReadUInt32() : 0;
+                if (s.Hdr.Version == EIoContainerHeaderVersion.BeforeVersionWasAdded)
+                {
+                    reader.ReadBytes(4); //number of ids is uint64 in ue4 but we skip 4 empty byte
+                    s.Hdr.IDSize = reader.ReadUInt32();
+                    reader.ReadBytes(8);
+                    s.Hdr.NumberOfIDsAgain = reader.ReadUInt32();
+
+                }
                 s.IDs = new List<ulong>();
                 for (int i = 0; i < (int)s.Hdr.NumberOfIDs; i++)
                 {
                     s.IDs.Add(reader.ReadUInt64());
                 }
+
                 s.FileLength = reader.ReadUInt32();
-                var curr = reader.BaseStream.Position;
-                s.OffsetAfterConss = curr + (long)s.Hdr.NumberOfIDs * DepLinks.SizeOf();
                 s.Conns = new List<DepLinks>();
                 for (int i = 0; i < (int)s.Hdr.NumberOfIDs; i++)
                 {
-                    var conn = new DepLinks
+                    var conn = new DepLinks();
+                    conn.Deps = new List<ulong>();
+                    conn.Hashs = new List<string>();
+                    if (s.Hdr.Version >= EIoContainerHeaderVersion.Initial)
                     {
-                        FileSize = reader.ReadUInt64(),
-                        ExportObjects = reader.ReadUInt32(),
-                        MostlyOne = reader.ReadUInt32(),
-                        SomeIndex = reader.ReadUInt64(),
-                        DependencyPackages = reader.ReadUInt32(),
-                        Offset = reader.ReadUInt32()
-                    };
-                    if (conn.Offset != 0)
+                        if (s.Hdr.Version < EIoContainerHeaderVersion.NoExportInfo)
+                        {
+                            conn.ExportObjects = reader.ReadUInt32();
+                            conn.MostlyOne = reader.ReadUInt32();
+                        }
+                        conn.Deps.GetDep(reader);
+                        conn.Hashs.GetHash(reader);
+
+                    }
+                    else
                     {
-                        curr = reader.BaseStream.Position;
-                        conn.Offset = (uint)(curr + conn.Offset - s.OffsetAfterConss - 8);
+                        reader.ReadBytes(8); //File Size
+                        conn.ExportObjects = reader.ReadUInt32();
+                        conn.MostlyOne = reader.ReadUInt32();
+                        reader.ReadBytes(8); //Index
+                        conn.Deps.GetDep(reader);
                     }
                     s.IDToConn[s.IDs[i]] = conn;
                     s.Conns.Add(conn);
                 }
-                s.OffsetAfterConss = reader.BaseStream.Position;
-                var toParse = s.FileLength - (uint)s.Hdr.NumberOfIDs * (uint)DepLinks.SizeOf();
-                s.Deps = new List<ulong>();
-                for (int i = 0; i < (int)toParse; i += 8)
-                {
-                    s.Deps.Add(reader.ReadUInt64());
-                }
+                //s.OffsetAfterConss = reader.BaseStream.Position;
+                //var toParse = s.FileLength - (uint)s.Hdr.NumberOfIDs * (uint)DepLinks.SizeOf();
+                //s.Deps = new List<ulong>();
+                //for (int i = 0; i < (int)toParse; i += 8)
+                //{
+                //    s.Deps.Add(reader.ReadUInt64());
+                //}
             }
             return s.ExtractDependencies();
         }
