@@ -115,7 +115,8 @@ namespace UEcastocLib
                 {
                     throw new Exception("Encrypted file, but no AES key was provided! Please pass the AES key as a byte array.");
                 }
-
+                else
+                    udata.aesKey = aesKey;
             }
 
             long ReadBefore = (long)udata.Header.HeaderSize;

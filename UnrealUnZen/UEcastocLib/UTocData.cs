@@ -12,6 +12,7 @@ namespace UEcastocLib
         public string MountPoint;
         public List<GameFileMetaData> Files;
         public List<string> CompressionMethods;
+        public byte[] aesKey;
 
         public UTocData()
         {
