@@ -23,8 +23,8 @@ namespace UnrealUnZen
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            comboBox1.SelectedIndex = 1;
-
+            comboBox1.SelectedIndex = 0;
+            comboBox2.SelectedIndex = 0;
         }
 
         public static TreeNode MakeTreeFromPaths(List<string> paths, string rootNodeName = "", char separator = '/')
@@ -91,7 +91,7 @@ namespace UnrealUnZen
                         //MessageBox.Show(extpath+ fileObject["Path"]?.ToString().Replace("/", "\\"));
                         string chunkId = fileObject["ChunkId"]?.ToString();
 
-                        if (!File.Exists(extpath + filePath) && filePath != "dependencies")
+                        if (!File.Exists(Path.Combine(extpath, filePath)) && filePath != "dependencies")
                         {
                             // File does not exist, mark it for removal
                             indicesToRemove.Add(i);
@@ -161,7 +161,7 @@ namespace UnrealUnZen
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 FixManifest(openFileDialog.FileName, dialog.FileName);
-
+                MessageBox.Show("Done!");
             }
         }
 
@@ -181,6 +181,10 @@ namespace UnrealUnZen
                     MessageBox.Show(res + " file(s) packed!");
                 }
             }
+        }
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            Constants.MountPoint = textBox1.Text;
         }
     }
 }

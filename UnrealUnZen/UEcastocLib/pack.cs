@@ -11,7 +11,7 @@ namespace UEcastocLib
     public static class Packer
     {
         const int CompSize = 0x10000;
-        const int PackUtocVersion = 3;
+        public static int PackUtocVersion = 3;
         const int CompressionNameLength = 32;
 
         private static Manifest ReadManifest(string manifestPath)
@@ -115,7 +115,7 @@ namespace UEcastocLib
                 for (int i = 0; i < files.Count; i++)
                 {
                     byte[] b;
-                    string pathToread = dir.Replace("/", "\\") + files[i].FilePath.Replace("/", "\\");
+                    string pathToread = Path.Combine(dir.Replace("/", "\\"), files[i].FilePath.Replace("/", "\\"));
                     if (!File.Exists(pathToread))
                     {
                         if (files[i].FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, and also its not the dependency file.");
@@ -310,7 +310,7 @@ namespace UEcastocLib
             udata.Header = new UTocHeader
             {
                 Magic = Constants.MagicUtoc,
-                Version = PackUtocVersion,
+                Version = (byte)PackUtocVersion,
                 HeaderSize = (uint)udata.Header.SizeOf(),
                 EntryCount = (uint)files.Count,
                 CompressedBlockEntryCount = (uint)compressedBlocksCount,

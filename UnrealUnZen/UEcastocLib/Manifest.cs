@@ -94,6 +94,7 @@ namespace UEcastocLib
             }
 
             byte[] data = u.UnpackDependencies(ucasPath);
+            File.WriteAllBytes("t.bin", data);
             m.Deps = ParseDependencies(data);
 
             return m;

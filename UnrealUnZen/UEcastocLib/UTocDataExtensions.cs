@@ -10,7 +10,7 @@ namespace UEcastocLib
     {
         public const string MagicUtoc = "-==--==--==--==-";
         public const string UnrealSignature = "\xC1\x83\x2A\x9E";
-        public const string MountPoint = "../../../";
+        public static string MountPoint = "../../../";
         public const uint NoneEntry = 0xFFFFFFFF;
         public const string DepFileName = "dependencies";
     }

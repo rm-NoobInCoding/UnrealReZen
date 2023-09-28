@@ -1,4 +1,4 @@
-﻿using Ionic.Zlib;
+using Ionic.Zlib;
 using LZ4;
 using OodleExtensions;
 using System;
@@ -104,7 +104,6 @@ namespace UEcastocLib
 
         private static byte[] CompressZlib(byte[] inData)
         {
-
             using (var outputStream = new MemoryStream())
             using (var compressionStream = new ZlibStream(outputStream, Ionic.Zlib.CompressionMode.Compress))
             {
