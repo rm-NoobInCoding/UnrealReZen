@@ -8,6 +8,7 @@ namespace UEcastocLib
 {
     public class UTocData
     {
+        public bool IsFullyRead = false;
         public UTocHeader Header;
         public string MountPoint;
         public List<GameFileMetaData> Files;

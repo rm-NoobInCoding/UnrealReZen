@@ -1,10 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace UEcastocLib
 {
+    public class UCasDataParserEventArgs : EventArgs
+    {
+        public string UnpackedFile { get; }
+        public int Len { get; }
+
+        public UCasDataParserEventArgs(string unpackedFile, int len)
+        {
+            UnpackedFile = unpackedFile;
+            Len = len;
+        }
+    }
     public static class UCasDataParser
     {
         private static void UnpackFile(UTocData utoc, GameFileMetaData fdata, List<byte[]> blockData, string outDir)
@@ -31,8 +43,8 @@ namespace UEcastocLib
             Directory.CreateDirectory(directory);
             if (fpath.Length >= 255) fpath = @"\\?\" + fpath;
             File.WriteAllBytes(fpath, outputData.ToArray());
-           
-            
+
+
         }
         public static byte[] UnpackFileBuffer(UTocData utoc, GameFileMetaData fdata, List<byte[]> blockData)
         {
@@ -71,6 +83,8 @@ namespace UEcastocLib
 
             return filesToUnpack;
         }
+        public static event EventHandler<UCasDataParserEventArgs> FileUnpacked;
+
         public static int UnpackUcasFiles(this UTocData utoc, string ucasPath, string outDir, string regex)
         {
             outDir += utoc.MountPoint;
@@ -107,11 +121,18 @@ namespace UEcastocLib
                     }
 
                     UnpackFile(utoc, v, compressionBlockData, outDir);
+                    OnFileUnpacked(new UCasDataParserEventArgs(v.FilePath,filesToUnpack.Count));
+
                     filesUnpacked++;
+
                 }
             }
 
             return filesUnpacked;
+        }
+        private static void OnFileUnpacked(UCasDataParserEventArgs e)
+        {
+            FileUnpacked?.Invoke(null, e);
         }
     }
 }

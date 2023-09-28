@@ -113,7 +113,7 @@ namespace UEcastocLib
             {
                 if (aesKey == null || aesKey.Length == 0)
                 {
-                    throw new Exception("Encrypted file, but no AES key was provided! Please pass the AES key as a byte array.");
+                    throw new Exception("Encrypted file");
                 }
                 else
                     udata.aesKey = aesKey;
@@ -202,7 +202,7 @@ namespace UEcastocLib
             {
                 throw new Exception("Couldn't find dependencies");
             }
-
+            udata.IsFullyRead = true;
             return udata;
         }
     }
