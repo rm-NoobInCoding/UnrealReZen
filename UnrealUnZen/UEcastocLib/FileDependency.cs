@@ -6,20 +6,19 @@ namespace UEcastocLib
 
     public class FileDependency
     {
-        [JsonProperty("uncompressedSize")]
-        public ulong FileSize { get; set; }
 
         [JsonProperty("exportObjects")]
         public uint ExportObjects { get; set; }
 
-        [JsonProperty("requiredValueSomehow")]
+        [JsonProperty("exportBundleCount")]
         public uint MostlyOne { get; set; }
-
-        [JsonProperty("uniqueIndex")]
-        public ulong SomeIndex { get; set; }
 
         [JsonProperty("dependencies")]
         public List<ulong> Dependencies { get; set; }
+
+        [JsonProperty("shaderMapHashes")]
+        public List<string> ShaderMapHashes { get; set; }
+
     }
 
     public class Dependencies
@@ -33,6 +32,7 @@ namespace UEcastocLib
 
     public class DepsHeader
     {
+        public EIoContainerHeaderVersion Version { get; set; }
         public ulong ThisPackageID { get; set; }
         public ulong NumberOfIDs { get; set; }
         public uint IDSize { get; set; }
@@ -61,6 +61,14 @@ namespace UEcastocLib
         }
     }
 
+    public enum EIoContainerHeaderVersion
+    {
+        BeforeVersionWasAdded = -1, // Custom constant to indicate pre-UE5 data
+        Initial = 0,
+        LocalizedPackages = 1,
+        OptionalSegmentPackages = 2,
+        NoExportInfo = 3,
+    }
 
     public class DepLinks
     {
@@ -70,6 +78,8 @@ namespace UEcastocLib
         public ulong SomeIndex { get; set; }
         public uint DependencyPackages { get; set; }
         public uint Offset { get; set; }
+        public List<ulong> Deps { get; set; }
+        public List<string> Hashs { get; set; }
         public static int SizeOf()
         {
             return sizeof(ulong) * 2 + sizeof(uint) * 4;
@@ -105,17 +115,11 @@ namespace UEcastocLib
                 var id = IDs[i];
                 var fd = new FileDependency
                 {
-                    FileSize = Conns[i].FileSize,
                     ExportObjects = Conns[i].ExportObjects,
                     MostlyOne = Conns[i].MostlyOne,
-                    SomeIndex = Conns[i].SomeIndex,
-                    Dependencies = new List<ulong>()
+                    Dependencies = Conns[i].Deps,
+                    ShaderMapHashes = Conns[i].Hashs
                 };
-                var idx = Conns[i].Offset / 8;
-                for (int j = 0; j < Conns[i].DependencyPackages; j++)
-                {
-                    fd.Dependencies.Add(Deps[(int)(idx + j)]);
-                }
                 d.ChunkIDToDependencies[id] = fd;
             }
             return d;
