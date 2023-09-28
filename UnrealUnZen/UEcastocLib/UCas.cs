@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Windows;
 
 namespace UEcastocLib
 {
@@ -30,9 +29,11 @@ namespace UEcastocLib
             string fpath = Path.Combine(outDir, fdata.FilePath);
             string directory = Path.GetDirectoryName(fpath);
             Directory.CreateDirectory(directory);
-
-                File.WriteAllBytes(fpath, outputData.ToArray());
-            }
+            if (fpath.Length >= 255) fpath = @"\\?\" + fpath;
+            File.WriteAllBytes(fpath, outputData.ToArray());
+           
+            
+        }
         public static byte[] UnpackFileBuffer(UTocData utoc, GameFileMetaData fdata, List<byte[]> blockData)
         {
             List<byte> outputData = new List<byte>();
