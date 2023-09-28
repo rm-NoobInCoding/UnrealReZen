@@ -191,7 +191,6 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(75, 21);
             this.comboBox1.TabIndex = 15;
-            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // label8
             // 
@@ -201,7 +200,6 @@
             this.label8.Size = new System.Drawing.Size(149, 13);
             this.label8.TabIndex = 16;
             this.label8.Text = "Repack compression Method:";
-            this.label8.Click += new System.EventHandler(this.label8_Click);
             // 
             // statusStrip1
             // 

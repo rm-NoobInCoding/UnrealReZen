@@ -40,7 +40,6 @@ namespace UEcastocLib
                 foreach (var block in depFile.CompressionBlocks)
                 {
                     openUcas.Seek((long)block.GetOffset(), SeekOrigin.Begin);
-                    MessageBox.Show((long)block.GetOffset() + " " + block.GetCompressedSize() + " " + block.GetUncompressedSize());
                     byte[] buf = new byte[block.GetCompressedSize()];
                     int readBytes = openUcas.Read(buf, 0, (int)block.GetCompressedSize());
 

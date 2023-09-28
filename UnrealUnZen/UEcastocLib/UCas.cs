@@ -31,8 +31,8 @@ namespace UEcastocLib
             string directory = Path.GetDirectoryName(fpath);
             Directory.CreateDirectory(directory);
 
-            File.WriteAllBytes(fpath, outputData.ToArray());
-        }
+                File.WriteAllBytes(fpath, outputData.ToArray());
+            }
         public static byte[] UnpackFileBuffer(UTocData utoc, GameFileMetaData fdata, List<byte[]> blockData)
         {
             List<byte> outputData = new List<byte>();
