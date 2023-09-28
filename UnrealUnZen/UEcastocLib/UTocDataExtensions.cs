@@ -208,6 +208,22 @@ namespace UEcastocLib
             return chunkIds;
         }
 
+        public static List<FIoPerfectHashSeeds> ParseHashSeeds(byte[] hashSeedsData)
+        {
+            if (hashSeedsData.Length == 0) return new List<FIoPerfectHashSeeds>();
+            List<FIoPerfectHashSeeds> hashs = new List<FIoPerfectHashSeeds>();
+            using(MemoryStream stream = new MemoryStream(hashSeedsData))
+            using(BinaryReader reader = new BinaryReader(stream))
+            {
+                while(reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    var Hash = new FIoPerfectHashSeeds(reader.ReadUInt32());
+                    hashs.Add(Hash);
+                }
+            }
+            return hashs;
+        }
+
         public static List<FIoOffsetAndLength> ParseOffsetAndLength(byte[] offsetAndLengthData)
         {
             List<FIoOffsetAndLength> offsetAndLength = new List<FIoOffsetAndLength>();

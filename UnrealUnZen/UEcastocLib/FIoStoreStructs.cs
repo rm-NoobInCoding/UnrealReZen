@@ -207,6 +207,15 @@ namespace UEcastocLib
         }
     }
 
+    public class FIoPerfectHashSeeds
+    {
+        public uint HashSeed { get; set; }
+        public FIoPerfectHashSeeds(uint hashSeed)
+        {
+            HashSeed = hashSeed;
+        }
+    }
+
     public class FIoChunkID
     {
         public ulong ID { get; set; }

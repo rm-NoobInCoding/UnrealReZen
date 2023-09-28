@@ -135,51 +135,8 @@ namespace UnrealUnZen
         private void button2_Click(object sender, EventArgs e)
         {
             Directory.CreateDirectory(tocadd + "_Export");
-            int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", "");
+            int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", AESKey.Text);
             MessageBox.Show(exportcount + " file(s) extracted!");
-            //int res = unpackAllGameFiles(tocadd, Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export\\", AESKey.Text);
-            //if (res != -1)
-            //{
-            //    MessageBox.Show(res + " files extracted!");
-            //}
-            //else
-            //{
-            //    IntPtr errorPtr = getError();
-            //    string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //    MessageBox.Show(res + " - " + errorMessage);
-            //}
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            //CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-            //dialog.IsFolderPicker = true;
-            //if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-            //{
-            //    int res = createManifestFile(tocadd, Path.ChangeExtension(tocadd, ".ucas"), "temp.json", AESKey.Text);
-            //    if (res != -1)
-            //    {
-            //        res = packGameFiles(dialog.FileName, "temp.json", Path.GetDirectoryName(tocadd) + "\\" + Path.GetFileNameWithoutExtension(tocadd) + "_new", "Zlib", AESKey.Text);
-            //        if (res != -1)
-            //        {
-            //            File.Delete("temp.json");
-            //            MessageBox.Show("Done!");
-            //        }
-            //        else
-            //        {
-            //            IntPtr errorPtr = getError();
-            //            string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //            MessageBox.Show(res + " : " + errorMessage);
-            //        }
-            //    }
-            //    else
-            //    {
-            //        IntPtr errorPtr = getError();
-            //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-            //        MessageBox.Show(res + " : " + errorMessage);
-            //    }
-
-            //}
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -219,28 +176,11 @@ namespace UnrealUnZen
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
             {
                 int res = Packer.PackGameFiles(dialog.FileName, openFileDialog.FileName, saveFileDialog.FileName, comboBox1.GetItemText(comboBox1.SelectedItem), AESKey.Text);
-                //    int res = packGameFiles(dialog.FileName + "\\", openFileDialog.FileName, Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + "_P", "Zlib", "");
-                if (res != -1)
+                if (res != 0)
                 {
                     MessageBox.Show(res + " file(s) packed!");
                 }
-                //    else
-                //    {
-                //        IntPtr errorPtr = getError();
-                //        string errorMessage = Marshal.PtrToStringAnsi(errorPtr);
-                //        MessageBox.Show(res + " : " + errorMessage);
-                //    }
             }
-        }
-
-        private void label8_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
         }
     }
 }
