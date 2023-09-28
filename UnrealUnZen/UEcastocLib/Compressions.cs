@@ -1,11 +1,10 @@
-﻿using LZ4;
+using Ionic.Zlib;
+using LZ4;
+using OodleExtensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using Ionic.Zlib;
-using OodleExtensions;
 
 namespace UEcastocLib
 {
@@ -105,7 +104,6 @@ namespace UEcastocLib
 
         private static byte[] CompressZlib(byte[] inData)
         {
-            
             using (var outputStream = new MemoryStream())
             using (var compressionStream = new ZlibStream(outputStream, Ionic.Zlib.CompressionMode.Compress))
             {
@@ -117,6 +115,10 @@ namespace UEcastocLib
 
         private static byte[] CompressOodle(byte[] inData)
         {
+            if (!IsOodleDllExist())
+            {
+                throw new Exception("oo2core_9_win64.dll was not found (oodle compression)");
+            }
             var compressedData = Oodle.Compress(inData, inData.Length, OodleFormat.Kraken, OodleCompressionLevel.Optimal3);
             return compressedData;
         }

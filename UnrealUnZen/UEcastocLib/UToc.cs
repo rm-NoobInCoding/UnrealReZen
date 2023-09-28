@@ -128,6 +128,10 @@ namespace UEcastocLib
             var OffsetAndLength = UTocDataExtensions.ParseOffsetAndLength(OffsetAndLengthsData);
             ReadBefore += OffsetAndLengthsData.Length;
 
+            byte[] PerfectHashSeedsData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.TocChunkPerfectHashSeedsCount * 4).ToArray();
+            var PerfectHashSeeds = UTocDataExtensions.ParseHashSeeds(PerfectHashSeedsData);
+            ReadBefore += PerfectHashSeedsData.Length;
+
             byte[] compressionBlocksData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.CompressedBlockEntrySize * (int)udata.Header.CompressedBlockEntryCount).ToArray();
             var customCompressionBlocks = UTocDataExtensions.ParseCompressionBlocks(compressionBlocksData);
             ReadBefore += compressionBlocksData.Length;
@@ -142,28 +146,33 @@ namespace UEcastocLib
                 ReadBefore += 4 + hSize * 2 + 20 * udata.Header.CompressedBlockEntryCount;
             }
 
-            byte[] directoryIndexData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.DirectoryIndexSize).ToArray();
-            ReadBefore += directoryIndexData.Length;
-            if (udata.IsEncrypted())
+            string[] orderedPaths = { };
+            if (udata.Header.ContainerFlags.HasFlag(EIoContainerFlags.IndexedContainerFlag))
             {
-                directoryIndexData = Helpers.DecryptAES(directoryIndexData, aesKey);
-            }
-           
-            var directoryIndex = UTocDataExtensions.ParseDirectoryIndex(directoryIndexData, (int)udata.Header.EntryCount);
-            string mountPoint = directoryIndex.Item1;
-            string[] orderedPaths = directoryIndex.Item2;
+                byte[] directoryIndexData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.DirectoryIndexSize).ToArray();
+                ReadBefore += directoryIndexData.Length;
+                if (udata.IsEncrypted())
+                {
+                    directoryIndexData = Helpers.DecryptAES(directoryIndexData, aesKey);
+                }
+                var directoryIndex = UTocDataExtensions.ParseDirectoryIndex(directoryIndexData, (int)udata.Header.EntryCount);
+                string mountPoint = directoryIndex.Item1;
+                orderedPaths = directoryIndex.Item2;
 
-            if (orderedPaths == null)
-            {
-                throw new Exception("Something went wrong parsing the directory index!");
+                if (orderedPaths == null)
+                {
+                    throw new Exception("Something went wrong parsing the directory index!");
+                }
             }
+
 
             byte[] chunksMetaData = utocData.Skip((int)ReadBefore).Take((int)udata.Header.EntryCount * 33).ToArray();
             var chunksMeta = UTocDataExtensions.ParseChunkMeta(chunksMetaData);
             ReadBefore += chunksMetaData.Length;
-            for (int i = 0; i < orderedPaths.Length; i++)
+            for (int i = 0; i < chunkIds.Count; i++)
             {
-                string path = orderedPaths[i];
+                string path = chunkIds[i].ID.ToString();
+                if (orderedPaths.Length > 0) path = orderedPaths[i];
                 if (path == null)
                 {
                     if (chunkIds[i].Type != 10 && udata.Header.ContainerID.Value != chunkIds[i].ID)
@@ -188,7 +197,7 @@ namespace UEcastocLib
                 });
             }
 
-            if (!udata.Files.Exists(f => f.FilePath == Constants.DepFileName))
+            if (udata.Header.ContainerID.Value != ulong.MaxValue && !udata.Files.Exists(f => f.FilePath == Constants.DepFileName))
             {
                 throw new Exception("Couldn't find dependencies");
             }
