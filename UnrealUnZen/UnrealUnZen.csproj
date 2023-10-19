@@ -14,7 +14,6 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-  
     <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
@@ -88,7 +87,11 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Helpers\BinaryReader.cs" />
+    <Compile Include="ToolResources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ToolResources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\MemoryStream.cs" />
     <Compile Include="UEcastocLib\Manifest.cs" />
     <Compile Include="UEcastocLib\Compressions.cs" />
@@ -111,6 +114,10 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="ToolResources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ToolResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainTool.resx">
       <DependentUpon>MainTool.cs</DependentUpon>
     </EmbeddedResource>
@@ -133,6 +140,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="Resources\Packed_P.pak" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -88,13 +88,12 @@ namespace UEcastocLib
 
             foreach (var v in u.Files)
             {
-                ManifestFile mf = new ManifestFile { Filepath = "/" + v.FilePath.Replace("\\", "/"), ChunkID = v.ChunkID.ToHexString().ToLower() };
-                if (v.FilePath == "/dependencies") v.FilePath = "dependencies";
+                ManifestFile mf = new ManifestFile { Filepath = v.FilePath.Replace("\\", "/"), ChunkID = v.ChunkID.ToHexString().ToLower() };
+                //if (v.FilePath == "dependencies") mf.Filepath = "dependencies";
                 m.Files.Add(mf);
             }
 
             byte[] data = u.UnpackDependencies(ucasPath);
-            File.WriteAllBytes("t.bin", data);
             m.Deps = ParseDependencies(data);
 
             return m;

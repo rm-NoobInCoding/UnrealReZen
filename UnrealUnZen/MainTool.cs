@@ -26,7 +26,6 @@ namespace UnrealUnZen
             comboBox1.SelectedIndex = 0;
             comboBox2.SelectedIndex = 0;
         }
-
         public static TreeNode MakeTreeFromPaths(List<string> paths, string rootNodeName = "", char separator = '/')
         {
             var rootNode = new TreeNode(rootNodeName);
@@ -88,7 +87,6 @@ namespace UnrealUnZen
                     if (fileObject != null)
                     {
                         string filePath = fileObject["Path"]?.ToString().Replace("/", "\\");
-                        //MessageBox.Show(extpath+ fileObject["Path"]?.ToString().Replace("/", "\\"));
                         string chunkId = fileObject["ChunkId"]?.ToString();
 
                         if (!File.Exists(Path.Combine(extpath, filePath)) && filePath != "dependencies")
@@ -135,7 +133,7 @@ namespace UnrealUnZen
         private void button2_Click(object sender, EventArgs e)
         {
             Directory.CreateDirectory(tocadd + "_Export");
-            int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", AESKey.Text);
+            int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", RegexUnpack.Text);
             MessageBox.Show(exportcount + " file(s) extracted!");
         }
 
@@ -155,7 +153,7 @@ namespace UnrealUnZen
         private void button5_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "jso|*.json";
+            openFileDialog.Filter = "Json Manifest File|*.json";
             CommonOpenFileDialog dialog = new CommonOpenFileDialog();
             dialog.IsFolderPicker = true;
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK)
@@ -185,6 +183,11 @@ namespace UnrealUnZen
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             Constants.MountPoint = textBox1.Text;
+        }
+
+        private void treeView1_MouseClick(object sender, MouseEventArgs e)
+        {
+
         }
     }
 }

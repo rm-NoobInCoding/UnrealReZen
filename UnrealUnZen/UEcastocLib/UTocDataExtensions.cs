@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Windows.Forms;
 
 namespace UEcastocLib
 {
@@ -82,10 +81,8 @@ namespace UEcastocLib
                 var strTable = new List<string>();
                 for (int i = 0; i < stringCount; i++)
                 {
-                    size = reader.ReadUInt32();
-                    byte[] strBytes = reader.ReadBytes((int)size);
-                    string str = Encoding.ASCII.GetString(strBytes, 0, strBytes.Length - 1);
-                    strTable.Add(str);
+
+                    strTable.Add(reader.ReadFString());
                 }
 
                 if (dirs[0].Name != Constants.NoneEntry)
@@ -140,15 +137,15 @@ namespace UEcastocLib
                 {
                     throw new Exception("magic word of .utoc file was not found");
                 }
-                if(header.Version < VersionConstants.VersionDirectoryIndex)
+                if (header.Version < VersionConstants.VersionDirectoryIndex)
                 {
                     throw new Exception("utoc version is outdated");
                 }
-                if(header.Version > VersionConstants.VersionLatest)
+                if (header.Version > VersionConstants.VersionLatest)
                 {
                     throw new Exception("too new utoc version");
                 }
-                if(header.CompressedBlockEntrySize != 12)
+                if (header.CompressedBlockEntrySize != 12)
                 {
                     throw new Exception("compressed block entry size was incorrect");
                 }
@@ -212,10 +209,10 @@ namespace UEcastocLib
         {
             if (hashSeedsData.Length == 0) return new List<FIoPerfectHashSeeds>();
             List<FIoPerfectHashSeeds> hashs = new List<FIoPerfectHashSeeds>();
-            using(MemoryStream stream = new MemoryStream(hashSeedsData))
-            using(BinaryReader reader = new BinaryReader(stream))
+            using (MemoryStream stream = new MemoryStream(hashSeedsData))
+            using (BinaryReader reader = new BinaryReader(stream))
             {
-                while(reader.BaseStream.Position < reader.BaseStream.Length)
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
                     var Hash = new FIoPerfectHashSeeds(reader.ReadUInt32());
                     hashs.Add(Hash);

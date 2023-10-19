@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows;
+using UnrealUnZen;
 
 namespace UEcastocLib
 {
@@ -47,7 +47,7 @@ namespace UEcastocLib
             int n = PackToCasToc(dirPath, manifest, outFile, compression, aes);
 
             // Write the embedded .pak file
-            byte[] embedded = File.ReadAllBytes("req/Packed_P.pak");
+            byte[] embedded = ToolResources.Packed_P;
             File.WriteAllBytes(outFile + ".pak", embedded);
             return n - 1;
         }
