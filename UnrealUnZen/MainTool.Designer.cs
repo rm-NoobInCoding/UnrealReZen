@@ -50,6 +50,8 @@
             this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.RegexUnpack = new System.Windows.Forms.TextBox();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -80,6 +82,7 @@
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(250, 404);
             this.treeView1.TabIndex = 3;
+            this.treeView1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.treeView1_MouseClick);
             // 
             // button4
             // 
@@ -190,7 +193,7 @@
             this.comboBox1.Items.AddRange(new object[] {
             "None",
             "Zlib",
-            "Oodle"});
+            "Oodle (Not working)"});
             this.comboBox1.Location = new System.Drawing.Point(271, 370);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(145, 21);
@@ -209,7 +212,7 @@
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripProgressBar1});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 567);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 601);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(428, 22);
             this.statusStrip1.TabIndex = 17;
@@ -260,11 +263,29 @@
             this.textBox1.Text = "../../../";
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(12, 563);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(106, 13);
+            this.label11.TabIndex = 23;
+            this.label11.Text = "Regex (For Unpack):";
+            // 
+            // RegexUnpack
+            // 
+            this.RegexUnpack.Location = new System.Drawing.Point(122, 560);
+            this.RegexUnpack.Name = "RegexUnpack";
+            this.RegexUnpack.Size = new System.Drawing.Size(289, 20);
+            this.RegexUnpack.TabIndex = 22;
+            // 
             // MainTool
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(428, 589);
+            this.ClientSize = new System.Drawing.Size(428, 623);
+            this.Controls.Add(this.label11);
+            this.Controls.Add(this.RegexUnpack);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.comboBox2);
@@ -322,6 +343,8 @@
         private System.Windows.Forms.ComboBox comboBox2;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.TextBox RegexUnpack;
     }
 }
 

@@ -1,13 +1,15 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Windows.Forms;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
+using System.Linq;
 
 namespace UEcastocLib
 {
-    internal class Helpers
+    public static class Helpers
     {
 
         public static byte[] DecryptAES(byte[] ciphertext, byte[] AESKey)
@@ -111,7 +113,23 @@ namespace UEcastocLib
             fstring[fstring.Length - 1] = 0;
             return fstring;
         }
-
+        public static string ReadFString(this BinaryReader reader)
+        {
+            var length = reader.ReadInt32();
+            if (length > 0)
+            {
+                byte[] strBytes = reader.ReadBytes(length);
+                return Encoding.UTF8.GetString(strBytes, 0, strBytes.Length - 1);
+            } 
+            else if (length < 0)
+            {
+                length *= -2;
+                byte[] strBytes = reader.ReadBytes(length);
+                return Encoding.Unicode.GetString(strBytes, 0, strBytes.Length - 2);
+            }
+            else
+                return "";
+        }
         public static byte[] UInt32ToBytes(uint a)
         {
             return BitConverter.GetBytes(a);
