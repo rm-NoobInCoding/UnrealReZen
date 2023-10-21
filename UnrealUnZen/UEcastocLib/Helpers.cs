@@ -1,11 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Windows.Forms;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Linq;
 
 namespace UEcastocLib
 {
@@ -53,22 +49,18 @@ namespace UEcastocLib
 
         public static byte[] HexStringToByteArray(string hexString)
         {
-            // Remove the "0x" prefix if present
             if (hexString.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             {
                 hexString = hexString.Substring(2);
             }
 
-            // Check if the input string has an even number of characters
             if (hexString.Length % 2 != 0)
             {
                 throw new ArgumentException("Hexadecimal string length must be even.");
             }
 
-            // Create a byte array to store the result
             byte[] byteArray = new byte[hexString.Length / 2];
 
-            // Convert the hexadecimal string to a byte array
             for (int i = 0; i < byteArray.Length; i++)
             {
                 byteArray[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
@@ -120,7 +112,7 @@ namespace UEcastocLib
             {
                 byte[] strBytes = reader.ReadBytes(length);
                 return Encoding.UTF8.GetString(strBytes, 0, strBytes.Length - 1);
-            } 
+            }
             else if (length < 0)
             {
                 length *= -2;

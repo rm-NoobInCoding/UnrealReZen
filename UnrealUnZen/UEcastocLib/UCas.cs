@@ -55,30 +55,37 @@ namespace UEcastocLib
             return outputData.ToArray();
 
         }
-        private static List<GameFileMetaData> MatchRegex(UTocData utoc, string regex)
+        private static List<GameFileMetaData> MatchFilter(UTocData utoc, string filter)
         {
             List<GameFileMetaData> filesToUnpack = new List<GameFileMetaData>();
+            filter = filter.Replace("{}", "*");
+
+            // Split the filter into multiple filter patterns
+            string[] filterPatterns = filter.Split(',', ';');
 
             foreach (var v in utoc.Files)
             {
-                bool match = Regex.IsMatch(v.FilePath, regex);
-
-                if (match && v.FilePath != Constants.DepFileName)
+                foreach (string pattern in filterPatterns)
                 {
-                    filesToUnpack.Add(v);
+                    string regexPattern = Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".");
+                    if (Regex.IsMatch(v.FilePath, regexPattern, RegexOptions.IgnoreCase) && v.FilePath != Constants.DepFileName)
+                    {
+                        filesToUnpack.Add(v);
+                        break;
+                    }
                 }
             }
 
             return filesToUnpack;
         }
-        public static int UnpackUcasFiles(this UTocData utoc, string ucasPath, string outDir, string regex)
+        public static int UnpackUcasFiles(this UTocData utoc, string ucasPath, string outDir, string filter)
         {
             outDir += utoc.MountPoint;
             int filesUnpacked = 0;
 
             using (FileStream openUcas = File.OpenRead(ucasPath))
             {
-                List<GameFileMetaData> filesToUnpack = MatchRegex(utoc, regex);
+                List<GameFileMetaData> filesToUnpack = MatchFilter(utoc, filter);
 
                 foreach (var v in filesToUnpack)
                 {

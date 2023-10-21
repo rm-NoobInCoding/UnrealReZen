@@ -28,10 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.treeView1 = new System.Windows.Forms.TreeView();
-            this.button4 = new System.Windows.Forms.Button();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainTool));
+            this.OpenTocBTN = new System.Windows.Forms.Button();
+            this.UnpackBTN = new System.Windows.Forms.Button();
+            this.ArchiveViewTV = new System.Windows.Forms.TreeView();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
@@ -40,66 +40,59 @@
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
-            this.button5 = new System.Windows.Forms.Button();
-            this.button6 = new System.Windows.Forms.Button();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.RepackBTN = new System.Windows.Forms.Button();
+            this.RepackMethodCMB = new System.Windows.Forms.ComboBox();
             this.label8 = new System.Windows.Forms.Label();
-            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
-            this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
             this.label9 = new System.Windows.Forms.Label();
-            this.comboBox2 = new System.Windows.Forms.ComboBox();
+            this.UTocVerCMB = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.MountPointTXB = new System.Windows.Forms.TextBox();
             this.label11 = new System.Windows.Forms.Label();
             this.RegexUnpack = new System.Windows.Forms.TextBox();
-            this.statusStrip1.SuspendLayout();
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.saveManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fixManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.repackUsingCustomManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.HelpFilter = new System.Windows.Forms.Button();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // button1
+            // OpenTocBTN
             // 
-            this.button1.Location = new System.Drawing.Point(12, 103);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(400, 23);
-            this.button1.TabIndex = 0;
-            this.button1.Text = "Load TOC";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.OpenTocBTN.Location = new System.Drawing.Point(12, 120);
+            this.OpenTocBTN.Name = "OpenTocBTN";
+            this.OpenTocBTN.Size = new System.Drawing.Size(400, 23);
+            this.OpenTocBTN.TabIndex = 0;
+            this.OpenTocBTN.Text = "Load TOC";
+            this.OpenTocBTN.UseVisualStyleBackColor = true;
+            this.OpenTocBTN.Click += new System.EventHandler(this.OpenTocBTN_Click);
             // 
-            // button2
+            // UnpackBTN
             // 
-            this.button2.Enabled = false;
-            this.button2.Location = new System.Drawing.Point(268, 150);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(144, 40);
-            this.button2.TabIndex = 2;
-            this.button2.Text = "Unpack ALL Files";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.UnpackBTN.Enabled = false;
+            this.UnpackBTN.Location = new System.Drawing.Point(268, 167);
+            this.UnpackBTN.Name = "UnpackBTN";
+            this.UnpackBTN.Size = new System.Drawing.Size(144, 50);
+            this.UnpackBTN.TabIndex = 2;
+            this.UnpackBTN.Text = "Unpack ALL Files";
+            this.UnpackBTN.UseVisualStyleBackColor = true;
+            this.UnpackBTN.Click += new System.EventHandler(this.UnpackBTN_Click);
             // 
-            // treeView1
+            // ArchiveViewTV
             // 
-            this.treeView1.Location = new System.Drawing.Point(12, 150);
-            this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(250, 404);
-            this.treeView1.TabIndex = 3;
-            this.treeView1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.treeView1_MouseClick);
-            // 
-            // button4
-            // 
-            this.button4.Enabled = false;
-            this.button4.Location = new System.Drawing.Point(268, 247);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(143, 41);
-            this.button4.TabIndex = 5;
-            this.button4.Text = "Save Manifest";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
+            this.ArchiveViewTV.Location = new System.Drawing.Point(12, 167);
+            this.ArchiveViewTV.Name = "ArchiveViewTV";
+            this.ArchiveViewTV.Size = new System.Drawing.Size(250, 404);
+            this.ArchiveViewTV.TabIndex = 3;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Impact", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(105, 9);
+            this.label1.Location = new System.Drawing.Point(105, 26);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(216, 23);
             this.label1.TabIndex = 6;
@@ -108,7 +101,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(119, 32);
+            this.label2.Location = new System.Drawing.Point(119, 49);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(188, 13);
             this.label2.TabIndex = 7;
@@ -117,7 +110,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(97, 134);
+            this.label3.Location = new System.Drawing.Point(97, 151);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(71, 13);
             this.label3.TabIndex = 8;
@@ -126,7 +119,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(319, 134);
+            this.label4.Location = new System.Drawing.Point(319, 151);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(36, 13);
             this.label4.TabIndex = 8;
@@ -134,7 +127,7 @@
             // 
             // AESKey
             // 
-            this.AESKey.Location = new System.Drawing.Point(70, 57);
+            this.AESKey.Location = new System.Drawing.Point(70, 74);
             this.AESKey.Name = "AESKey";
             this.AESKey.Size = new System.Drawing.Size(341, 20);
             this.AESKey.TabIndex = 9;
@@ -142,7 +135,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(12, 60);
+            this.label5.Location = new System.Drawing.Point(12, 77);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(52, 13);
             this.label5.TabIndex = 10;
@@ -151,150 +144,196 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(106, 80);
+            this.label6.Location = new System.Drawing.Point(145, 97);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(203, 13);
+            this.label6.Size = new System.Drawing.Size(135, 13);
             this.label6.TabIndex = 11;
-            this.label6.Text = "(leave empty if not needed - experimental)";
+            this.label6.Text = "(leave empty if not needed)";
             // 
             // label7
             // 
-            this.label7.Location = new System.Drawing.Point(269, 485);
+            this.label7.Location = new System.Drawing.Point(273, 501);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(143, 58);
             this.label7.TabIndex = 12;
-            this.label7.Text = "By NoobInCoding\r\n\r\nThanks to gitMenv for UEcastoc library";
+            this.label7.Text = "By NoobInCoding && fillmsn\r\n\r\nThanks to gitMenv for UEcastoc library";
             this.label7.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
-            // button5
+            // RepackBTN
             // 
-            this.button5.Location = new System.Drawing.Point(268, 294);
-            this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(143, 44);
-            this.button5.TabIndex = 13;
-            this.button5.Text = "Fix Manifest (experimental)";
-            this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += new System.EventHandler(this.button5_Click);
+            this.RepackBTN.Enabled = false;
+            this.RepackBTN.Location = new System.Drawing.Point(268, 223);
+            this.RepackBTN.Name = "RepackBTN";
+            this.RepackBTN.Size = new System.Drawing.Size(144, 45);
+            this.RepackBTN.TabIndex = 14;
+            this.RepackBTN.Text = "Repack Files";
+            this.RepackBTN.UseVisualStyleBackColor = true;
+            this.RepackBTN.Click += new System.EventHandler(this.RepackBTN_Click);
             // 
-            // button6
+            // RepackMethodCMB
             // 
-            this.button6.Location = new System.Drawing.Point(268, 196);
-            this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(144, 45);
-            this.button6.TabIndex = 14;
-            this.button6.Text = "Repack Files\r\n(experimental)";
-            this.button6.UseVisualStyleBackColor = true;
-            this.button6.Click += new System.EventHandler(this.button6_Click);
-            // 
-            // comboBox1
-            // 
-            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Items.AddRange(new object[] {
+            this.RepackMethodCMB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.RepackMethodCMB.FormattingEnabled = true;
+            this.RepackMethodCMB.Items.AddRange(new object[] {
             "None",
             "Zlib",
             "Oodle (Not working)"});
-            this.comboBox1.Location = new System.Drawing.Point(271, 370);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(145, 21);
-            this.comboBox1.TabIndex = 15;
+            this.RepackMethodCMB.Location = new System.Drawing.Point(270, 301);
+            this.RepackMethodCMB.Name = "RepackMethodCMB";
+            this.RepackMethodCMB.Size = new System.Drawing.Size(145, 21);
+            this.RepackMethodCMB.TabIndex = 15;
             // 
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(265, 354);
+            this.label8.Location = new System.Drawing.Point(264, 285);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(149, 13);
             this.label8.TabIndex = 16;
             this.label8.Text = "Repack compression Method:";
             // 
-            // statusStrip1
-            // 
-            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripProgressBar1});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 601);
-            this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(428, 22);
-            this.statusStrip1.TabIndex = 17;
-            this.statusStrip1.Text = "statusStrip1";
-            // 
-            // toolStripProgressBar1
-            // 
-            this.toolStripProgressBar1.Name = "toolStripProgressBar1";
-            this.toolStripProgressBar1.Size = new System.Drawing.Size(100, 16);
-            this.toolStripProgressBar1.ToolTipText = "v";
-            // 
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(265, 394);
+            this.label9.Location = new System.Drawing.Point(264, 325);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(119, 13);
             this.label9.TabIndex = 18;
             this.label9.Text = "Repack UTOC Version:";
             // 
-            // comboBox2
+            // UTocVerCMB
             // 
-            this.comboBox2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBox2.FormattingEnabled = true;
-            this.comboBox2.Items.AddRange(new object[] {
+            this.UTocVerCMB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.UTocVerCMB.FormattingEnabled = true;
+            this.UTocVerCMB.Items.AddRange(new object[] {
             "2",
             "3"});
-            this.comboBox2.Location = new System.Drawing.Point(271, 410);
-            this.comboBox2.Name = "comboBox2";
-            this.comboBox2.Size = new System.Drawing.Size(145, 21);
-            this.comboBox2.TabIndex = 19;
+            this.UTocVerCMB.Location = new System.Drawing.Point(270, 341);
+            this.UTocVerCMB.Name = "UTocVerCMB";
+            this.UTocVerCMB.Size = new System.Drawing.Size(145, 21);
+            this.UTocVerCMB.TabIndex = 19;
             // 
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(265, 434);
+            this.label10.Location = new System.Drawing.Point(264, 365);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(67, 13);
             this.label10.TabIndex = 20;
             this.label10.Text = "Mount Point:";
             // 
-            // textBox1
+            // MountPointTXB
             // 
-            this.textBox1.Location = new System.Drawing.Point(268, 450);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(148, 20);
-            this.textBox1.TabIndex = 21;
-            this.textBox1.Text = "../../../";
-            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            this.MountPointTXB.Location = new System.Drawing.Point(267, 381);
+            this.MountPointTXB.Name = "MountPointTXB";
+            this.MountPointTXB.Size = new System.Drawing.Size(148, 20);
+            this.MountPointTXB.TabIndex = 21;
+            this.MountPointTXB.Text = "../../../";
+            this.MountPointTXB.TextChanged += new System.EventHandler(this.MountPointTXB_TextChanged);
             // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(12, 563);
+            this.label11.Location = new System.Drawing.Point(12, 580);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(106, 13);
+            this.label11.Size = new System.Drawing.Size(97, 13);
             this.label11.TabIndex = 23;
-            this.label11.Text = "Regex (For Unpack):";
+            this.label11.Text = "Filter (For Unpack):";
             // 
             // RegexUnpack
             // 
-            this.RegexUnpack.Location = new System.Drawing.Point(122, 560);
+            this.RegexUnpack.Location = new System.Drawing.Point(110, 577);
             this.RegexUnpack.Name = "RegexUnpack";
-            this.RegexUnpack.Size = new System.Drawing.Size(289, 20);
+            this.RegexUnpack.Size = new System.Drawing.Size(281, 20);
             this.RegexUnpack.TabIndex = 22;
+            // 
+            // toolStrip1
+            // 
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripDropDownButton1});
+            this.toolStrip1.Location = new System.Drawing.Point(0, 0);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.Size = new System.Drawing.Size(428, 25);
+            this.toolStrip1.TabIndex = 24;
+            this.toolStrip1.Text = "toolStrip1";
+            // 
+            // toolStripDropDownButton1
+            // 
+            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem,
+            this.toolStripSeparator1,
+            this.saveManifestToolStripMenuItem,
+            this.fixManifestToolStripMenuItem,
+            this.repackUsingCustomManifestToolStripMenuItem});
+            this.toolStripDropDownButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton1.Image")));
+            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            this.toolStripDropDownButton1.Size = new System.Drawing.Size(66, 22);
+            this.toolStripDropDownButton1.Text = "Manifest";
+            this.toolStripDropDownButton1.ToolTipText = "Manifest";
+            // 
+            // dontUseItIfYouDontKnowHowWorksToolStripMenuItem
+            // 
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem.Enabled = false;
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem.Name = "dontUseItIfYouDontKnowHowWorksToolStripMenuItem";
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem.Size = new System.Drawing.Size(225, 22);
+            this.dontUseItIfYouDontKnowHowWorksToolStripMenuItem.Text = "EXPERIMRNTAL - DON\'T USE";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(222, 6);
+            // 
+            // saveManifestToolStripMenuItem
+            // 
+            this.saveManifestToolStripMenuItem.Enabled = false;
+            this.saveManifestToolStripMenuItem.Name = "saveManifestToolStripMenuItem";
+            this.saveManifestToolStripMenuItem.Size = new System.Drawing.Size(225, 22);
+            this.saveManifestToolStripMenuItem.Text = "Save Manifest";
+            this.saveManifestToolStripMenuItem.Click += new System.EventHandler(this.saveManifestToolStripMenuItem_Click);
+            // 
+            // fixManifestToolStripMenuItem
+            // 
+            this.fixManifestToolStripMenuItem.Enabled = false;
+            this.fixManifestToolStripMenuItem.Name = "fixManifestToolStripMenuItem";
+            this.fixManifestToolStripMenuItem.Size = new System.Drawing.Size(225, 22);
+            this.fixManifestToolStripMenuItem.Text = "Fix Manifest";
+            this.fixManifestToolStripMenuItem.Click += new System.EventHandler(this.fixManifestToolStripMenuItem_Click);
+            // 
+            // repackUsingCustomManifestToolStripMenuItem
+            // 
+            this.repackUsingCustomManifestToolStripMenuItem.Name = "repackUsingCustomManifestToolStripMenuItem";
+            this.repackUsingCustomManifestToolStripMenuItem.Size = new System.Drawing.Size(225, 22);
+            this.repackUsingCustomManifestToolStripMenuItem.Text = "Repack Custom Manifest";
+            this.repackUsingCustomManifestToolStripMenuItem.Click += new System.EventHandler(this.repackUsingCustomManifestToolStripMenuItem_Click);
+            // 
+            // HelpFilter
+            // 
+            this.HelpFilter.Location = new System.Drawing.Point(391, 576);
+            this.HelpFilter.Name = "HelpFilter";
+            this.HelpFilter.Size = new System.Drawing.Size(25, 23);
+            this.HelpFilter.TabIndex = 25;
+            this.HelpFilter.Text = "?";
+            this.HelpFilter.UseVisualStyleBackColor = true;
+            this.HelpFilter.Click += new System.EventHandler(this.HelpFilter_Click);
             // 
             // MainTool
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(428, 623);
+            this.ClientSize = new System.Drawing.Size(428, 615);
+            this.Controls.Add(this.HelpFilter);
+            this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.label11);
             this.Controls.Add(this.RegexUnpack);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.MountPointTXB);
             this.Controls.Add(this.label10);
-            this.Controls.Add(this.comboBox2);
+            this.Controls.Add(this.UTocVerCMB);
             this.Controls.Add(this.label9);
-            this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.label8);
-            this.Controls.Add(this.comboBox1);
-            this.Controls.Add(this.button6);
-            this.Controls.Add(this.button5);
+            this.Controls.Add(this.RepackMethodCMB);
+            this.Controls.Add(this.RepackBTN);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.label5);
@@ -303,17 +342,16 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.button4);
-            this.Controls.Add(this.treeView1);
-            this.Controls.Add(this.button2);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.ArchiveViewTV);
+            this.Controls.Add(this.UnpackBTN);
+            this.Controls.Add(this.OpenTocBTN);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "MainTool";
-            this.Text = "Tool";
+            this.Text = "UnrealUnZen | Unreal Engine IoStore Tool";
             this.Load += new System.EventHandler(this.Form1_Load);
-            this.statusStrip1.ResumeLayout(false);
-            this.statusStrip1.PerformLayout();
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -321,10 +359,9 @@
 
         #endregion
 
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.TreeView treeView1;
-        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button OpenTocBTN;
+        private System.Windows.Forms.Button UnpackBTN;
+        private System.Windows.Forms.TreeView ArchiveViewTV;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
@@ -333,18 +370,23 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Button button5;
-        private System.Windows.Forms.Button button6;
-        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.Button RepackBTN;
+        private System.Windows.Forms.ComboBox RepackMethodCMB;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.StatusStrip statusStrip1;
-        private System.Windows.Forms.ToolStripProgressBar toolStripProgressBar1;
         private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.ComboBox comboBox2;
+        private System.Windows.Forms.ComboBox UTocVerCMB;
         private System.Windows.Forms.Label label10;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox MountPointTXB;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.TextBox RegexUnpack;
+        private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
+        private System.Windows.Forms.ToolStripMenuItem saveManifestToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem fixManifestToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem repackUsingCustomManifestToolStripMenuItem;
+        private System.Windows.Forms.Button HelpFilter;
+        private System.Windows.Forms.ToolStripMenuItem dontUseItIfYouDontKnowHowWorksToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     }
 }
 

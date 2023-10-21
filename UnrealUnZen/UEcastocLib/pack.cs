@@ -14,14 +14,14 @@ namespace UEcastocLib
         public static int PackUtocVersion = 3;
         const int CompressionNameLength = 32;
 
-        private static Manifest ReadManifest(string manifestPath)
+        public static Manifest JsonToManifest(string manifestPath)
         {
 
             string json = File.ReadAllText(manifestPath);
             return Newtonsoft.Json.JsonConvert.DeserializeObject<Manifest>(json);
 
         }
-        public static int PackGameFiles(string dirPath, string manifestPath, string outFile, string compressionMethod, string AESKey)
+        public static int PackGameFiles(string dirPath, Manifest manifest, string outFile, string compressionMethod, string AESKey)
         {
             dirPath = Path.GetFullPath(dirPath);
             outFile = Path.ChangeExtension(outFile, null); // Remove any extension
@@ -38,7 +38,7 @@ namespace UEcastocLib
                 throw new Exception("AES key length should be 32 bytes or none at all");
             }
 
-            Manifest manifest = ReadManifest(manifestPath);
+            //Manifest manifest = ReadManifest(manifestPath);
             if (manifest == null)
             {
                 throw new Exception("Manifest read is null");
