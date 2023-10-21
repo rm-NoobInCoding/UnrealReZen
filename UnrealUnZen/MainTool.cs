@@ -1,6 +1,5 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -18,13 +17,13 @@ namespace UnrealUnZen
             InitializeComponent();
         }
 
-        string tocadd = "";
-        UTocData uToc = new UTocData();
+        string UTocFileAddress = "";
+        UTocData UTocFile = new UTocData();
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            comboBox1.SelectedIndex = 0;
-            comboBox2.SelectedIndex = 0;
+            RepackMethodCMB.SelectedIndex = 0;
+            UTocVerCMB.SelectedIndex = 0;
         }
         public static TreeNode MakeTreeFromPaths(List<string> paths, string rootNodeName = "", char separator = '/')
         {
@@ -41,116 +40,82 @@ namespace UnrealUnZen
             }
             return rootNode;
         }
-
-        private void button1_Click(object sender, EventArgs e)
+        private void OpenTocBTN_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "UToc files(*.utoc)|*.utoc";
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                tocadd = ofd.FileName;
-                uToc = UTocDataParser.ParseUtocFile(tocadd, Helpers.HexStringToByteArray(AESKey.Text));
+                UTocFileAddress = ofd.FileName;
+                UTocFile = UTocDataParser.ParseUtocFile(UTocFileAddress, Helpers.HexStringToByteArray(AESKey.Text));
                 List<string> pathes = new List<string>();
 
-                for (int i = 0; i < uToc.Files.Count; i++)
+                for (int i = 0; i < UTocFile.Files.Count; i++)
                 {
-                    pathes.Add(uToc.Files[i].FilePath);
+                    pathes.Add(UTocFile.Files[i].FilePath);
                 }
 
-                treeView1.Nodes.Clear();
-                treeView1.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(tocadd), '\\'));
-                button1.Text = "Load TOC (Loaded " + Path.GetFileNameWithoutExtension(tocadd) + ")";
-                button2.Enabled = true;
-                button4.Enabled = true;
-
+                ArchiveViewTV.Nodes.Clear();
+                ArchiveViewTV.Nodes.Add(MakeTreeFromPaths(pathes, Path.GetFileNameWithoutExtension(UTocFileAddress), '\\'));
+                OpenTocBTN.Text = "Load TOC (Loaded " + Path.GetFileNameWithoutExtension(UTocFileAddress) + ")";
+                UnpackBTN.Enabled = true;
+                RepackBTN.Enabled = true;
+                saveManifestToolStripMenuItem.Enabled = true;
+                fixManifestToolStripMenuItem.Enabled = true;
             }
         }
-        void FixManifest(string jsonFilePath, string extpath)
+        private void UnpackBTN_Click(object sender, EventArgs e)
         {
-
-            // Read the JSON file
-            string jsonText = File.ReadAllText(jsonFilePath);
-            JObject jsonObject = JObject.Parse(jsonText);
-
-            // Get the Files array
-            JArray filesArray = jsonObject["Files"] as JArray;
-
-            if (filesArray != null)
-            {
-                // Create a list to store the indices of items to remove
-                List<int> indicesToRemove = new List<int>();
-
-                for (int i = 0; i < filesArray.Count; i++)
-                {
-                    JObject fileObject = filesArray[i] as JObject;
-
-                    if (fileObject != null)
-                    {
-                        string filePath = fileObject["Path"]?.ToString().Replace("/", "\\");
-                        string chunkId = fileObject["ChunkId"]?.ToString();
-
-                        if (!File.Exists(Path.Combine(extpath, filePath)) && filePath != "dependencies")
-                        {
-                            // File does not exist, mark it for removal
-                            indicesToRemove.Add(i);
-
-                            // Find the corresponding ChunkId in Dependencies and remove it
-                            if (chunkId != null && chunkId.Length >= 16)
-                            {
-                                string chunkIdPrefix = ulong.Parse(chunkId.Substring(0, 16), System.Globalization.NumberStyles.HexNumber).ToString();
-                                JObject dependenciesObject = jsonObject["Dependencies"] as JObject;
-                                JObject chunkIdToDependenciesObject = dependenciesObject?["ChunkIDToDependencies"] as JObject;
-
-                                if (chunkIdToDependenciesObject != null && chunkIdToDependenciesObject.ContainsKey(chunkIdPrefix))
-                                {
-                                    chunkIdToDependenciesObject.Remove(chunkIdPrefix);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Remove the marked items from Files array in reverse order to avoid index issues
-                indicesToRemove.Reverse();
-                foreach (int indexToRemove in indicesToRemove)
-                {
-                    filesArray.RemoveAt(indexToRemove);
-                }
-
-                // Serialize the updated JSON back to a string
-                string updatedJsonText = jsonObject.ToString();
-
-                // Write the updated JSON back to the file
-                File.WriteAllText(jsonFilePath + "_Fix.json", updatedJsonText);
-
-                Console.WriteLine("JSON file updated successfully.");
-            }
-            else
-            {
-                Console.WriteLine("JSON file structure is not as expected.");
-            }
-        }
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Directory.CreateDirectory(tocadd + "_Export");
-            int exportcount = uToc.UnpackUcasFiles(Path.ChangeExtension(tocadd, ".ucas"), tocadd + "_Export", RegexUnpack.Text);
+            Directory.CreateDirectory(UTocFileAddress + "_Export");
+            int exportcount = UTocFile.UnpackUcasFiles(Path.ChangeExtension(UTocFileAddress, ".ucas"), UTocFileAddress + "_Export", RegexUnpack.Text);
             MessageBox.Show(exportcount + " file(s) extracted!");
         }
 
-        private void button4_Click(object sender, EventArgs e)
+
+        private void RepackBTN_Click(object sender, EventArgs e)
+        {
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "utoc file|*.utoc";
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                Manifest manifest = UTocFile.ConstructManifest(Path.ChangeExtension(UTocFileAddress, ".ucas"));
+                foreach (var f in manifest.Files.ToList())
+                {
+                    if (!File.Exists(Path.Combine(dialog.FileName, f.Filepath.Replace("/", "\\"))) && f.Filepath != "dependencies")
+                    {
+                        manifest.Files.Remove(f);
+                        manifest.Deps.ChunkIDToDependencies.Remove(ulong.Parse(f.ChunkID.Substring(0, 16), System.Globalization.NumberStyles.HexNumber));
+                    }
+                }
+
+                int res = Packer.PackGameFiles(dialog.FileName, manifest, saveFileDialog.FileName, RepackMethodCMB.GetItemText(RepackMethodCMB.SelectedItem), AESKey.Text);
+                if (res != 0)
+                {
+                    MessageBox.Show(res + " file(s) packed!");
+                }
+            }
+        }
+        private void MountPointTXB_TextChanged(object sender, EventArgs e)
+        {
+            Constants.MountPoint = MountPointTXB.Text;
+        }
+
+        private void saveManifestToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFile = new SaveFileDialog();
             saveFile.Filter = "Manifest Json File|*.json";
-            saveFile.FileName = Path.GetFileNameWithoutExtension(tocadd);
+            saveFile.FileName = Path.GetFileNameWithoutExtension(UTocFileAddress);
             if (saveFile.ShowDialog() == DialogResult.OK)
             {
-                Manifest manifest = uToc.ConstructManifest(Path.ChangeExtension(tocadd, ".ucas"));
+                Manifest manifest = UTocFile.ConstructManifest(Path.ChangeExtension(UTocFileAddress, ".ucas"));
                 File.WriteAllText(saveFile.FileName, JsonConvert.SerializeObject(manifest, Formatting.Indented));
                 MessageBox.Show("Done!");
             }
         }
 
-        private void button5_Click(object sender, EventArgs e)
+        private void fixManifestToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Json Manifest File|*.json";
@@ -158,36 +123,43 @@ namespace UnrealUnZen
             dialog.IsFolderPicker = true;
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                FixManifest(openFileDialog.FileName, dialog.FileName);
+                Manifest manifest = Packer.JsonToManifest(openFileDialog.FileName);
+                foreach (var f in manifest.Files.ToList())
+                {
+                    if (!File.Exists(Path.Combine(dialog.FileName, f.Filepath.Replace("/", "\\"))) && f.Filepath != "dependencies")
+                    {
+                        manifest.Files.Remove(f);
+                        manifest.Deps.ChunkIDToDependencies.Remove(ulong.Parse(f.ChunkID.Substring(0, 16), System.Globalization.NumberStyles.HexNumber));
+                    }
+                }
+                File.WriteAllText(openFileDialog.FileName + ".Fixed_json", JsonConvert.SerializeObject(manifest, Formatting.Indented));
                 MessageBox.Show("Done!");
             }
         }
 
-        private void button6_Click(object sender, EventArgs e)
+        private void repackUsingCustomManifestToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CommonOpenFileDialog dialog = new CommonOpenFileDialog();
             dialog.IsFolderPicker = true;
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Manifest file|*.json";
+            OpenFileDialog jsonManifest = new OpenFileDialog();
+            jsonManifest.Filter = "Manifest Json File|*.json";
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Filter = "utoc file|*.utoc";
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && openFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && jsonManifest.ShowDialog() == DialogResult.OK && saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                int res = Packer.PackGameFiles(dialog.FileName, openFileDialog.FileName, saveFileDialog.FileName, comboBox1.GetItemText(comboBox1.SelectedItem), AESKey.Text);
+                Manifest manifest = Packer.JsonToManifest(dialog.FileName);
+
+                int res = Packer.PackGameFiles(dialog.FileName, manifest, saveFileDialog.FileName, RepackMethodCMB.GetItemText(RepackMethodCMB.SelectedItem), AESKey.Text);
                 if (res != 0)
                 {
                     MessageBox.Show(res + " file(s) packed!");
                 }
             }
         }
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-            Constants.MountPoint = textBox1.Text;
-        }
 
-        private void treeView1_MouseClick(object sender, MouseEventArgs e)
+        private void HelpFilter_Click(object sender, EventArgs e)
         {
-
+            MessageBox.Show("this will filter the files to extract using the W wildcards separated by comma or semicolon, example {}.mp3,{}.txt;{}myname{}\r\nuse {} instead of * to avoid issues on Windows");
         }
     }
 }
