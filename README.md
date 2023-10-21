@@ -21,9 +21,7 @@ UnrealUnZen is a powerful and versatile modding tool designed for the seamless u
 
 **Getting Started:**
 
-1. Clone the repository to your local machine.
-2. Build the tool using your preferred development environment (C#).
-3. Launch UnrealUnZen and begin unpacking and packing Unreal Engine Archive files effortlessly.
+*will added later
 
 **Contributing:**
 
