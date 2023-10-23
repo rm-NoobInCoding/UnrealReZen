@@ -1,6 +1,6 @@
 using Ionic.Zlib;
 using LZ4;
-using OodleExtensions;
+using OodleExtension;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -81,7 +81,7 @@ namespace UEcastocLib
                 throw new Exception("oo2core_9_win64.dll was not found (oodle decompression)");
             }
 
-            var output = Oodle.Decompress(inData, (int)expectedOutputSize);
+            var output = Oodle.Decompress(inData, (int)expectedOutputSize, Oodle.OodleLZ_FuzzSafe.No, Oodle.OodleLZ_CheckCRC.No, Oodle.OodleLZ_Verbosity.Max, Oodle.OodleLZ_Decode_ThreadPhase.Unthreaded);
             return output;
         }
 
@@ -119,7 +119,7 @@ namespace UEcastocLib
             {
                 throw new Exception("oo2core_9_win64.dll was not found (oodle compression)");
             }
-            var compressedData = Oodle.Compress(inData, inData.Length, OodleFormat.Kraken, OodleCompressionLevel.Optimal3);
+            var compressedData = Oodle.Compress(inData, inData.Length, Oodle.OodleLZ_OodleFormat.Kraken, Oodle.OodleLZ_OodleCompressionLevel.Optimal3);
             return compressedData;
         }
 
