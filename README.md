@@ -1,7 +1,7 @@
 # UnrealUnZen
 ### Unreal Engine Archive Unpacking and Packing Tool
 
-![GitHub Stars](https://img.shields.io/github/stars/rm-NoobInCoding/UnealUnZen?style=social) ![GitHub Forks](https://img.shields.io/github/forks/rm-NoobInCoding/UnealUnZen?style=social) [![build and test](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml)
+![GitHub Stars](https://img.shields.io/github/stars/rm-NoobInCoding/UnrealUnZen) ![GitHub Forks](https://img.shields.io/github/forks/rm-NoobInCoding/UnrealUnZen) [![build and test](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml)
 
 ### Overview:
 
