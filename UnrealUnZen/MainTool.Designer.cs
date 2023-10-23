@@ -35,7 +35,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
-            this.label4 = new System.Windows.Forms.Label();
             this.AESKey = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
@@ -57,6 +56,7 @@
             this.fixManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.repackUsingCustomManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.HelpFilter = new System.Windows.Forms.Button();
+            this.label4 = new System.Windows.Forms.Label();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -116,15 +116,6 @@
             this.label3.TabIndex = 8;
             this.label3.Text = "Archive view:";
             // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(319, 151);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(36, 13);
-            this.label4.TabIndex = 8;
-            this.label4.Text = "Tools:";
-            // 
             // AESKey
             // 
             this.AESKey.Location = new System.Drawing.Point(70, 74);
@@ -152,11 +143,11 @@
             // 
             // label7
             // 
-            this.label7.Location = new System.Drawing.Point(273, 501);
+            this.label7.Location = new System.Drawing.Point(270, 491);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(143, 58);
             this.label7.TabIndex = 12;
-            this.label7.Text = "By NoobInCoding && fillmsn\r\n\r\nThanks to gitMenv for UEcastoc library";
+            this.label7.Text = "By NoobInCoding\r\n\r\nThanks to gitMenv - EmOo";
             this.label7.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // RepackBTN
@@ -177,7 +168,7 @@
             this.RepackMethodCMB.Items.AddRange(new object[] {
             "None",
             "Zlib",
-            "Oodle (Not working)"});
+            "Oodle"});
             this.RepackMethodCMB.Location = new System.Drawing.Point(270, 301);
             this.RepackMethodCMB.Name = "RepackMethodCMB";
             this.RepackMethodCMB.Size = new System.Drawing.Size(145, 21);
@@ -318,10 +309,20 @@
             this.HelpFilter.UseVisualStyleBackColor = true;
             this.HelpFilter.Click += new System.EventHandler(this.HelpFilter_Click);
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(319, 151);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(36, 13);
+            this.label4.TabIndex = 8;
+            this.label4.Text = "Tools:";
+            // 
             // MainTool
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(428, 615);
             this.Controls.Add(this.HelpFilter);
             this.Controls.Add(this.toolStrip1);
@@ -365,7 +366,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox AESKey;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
@@ -387,6 +387,7 @@
         private System.Windows.Forms.Button HelpFilter;
         private System.Windows.Forms.ToolStripMenuItem dontUseItIfYouDontKnowHowWorksToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.Label label4;
     }
 }
 
