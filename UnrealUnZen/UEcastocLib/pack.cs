@@ -89,7 +89,7 @@ namespace UEcastocLib
             {
                 foreach (var file in files)
                 {
-                    if (m.Deps.ChunkIDToDependencies.ContainsKey(file.ChunkID.ID))
+                    if (m.Deps.ChunkIDToDependencies.ContainsKey(file.ChunkID.ID) && !subsetDependencies.ContainsKey(file.ChunkID.ID))
                     {
                         subsetDependencies.Add(file.ChunkID.ID, m.Deps.ChunkIDToDependencies[file.ChunkID.ID]);
 
