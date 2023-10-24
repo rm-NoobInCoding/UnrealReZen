@@ -89,7 +89,7 @@ namespace UnrealUnZen
                         manifest.Deps.ChunkIDToDependencies.Remove(ulong.Parse(f.ChunkID.Substring(0, 16), System.Globalization.NumberStyles.HexNumber));
                     }
                 }
-
+                File.WriteAllText("debg.json", JsonConvert.SerializeObject(manifest, Formatting.Indented));
                 int res = Packer.PackGameFiles(dialog.FileName, manifest, saveFileDialog.FileName, RepackMethodCMB.GetItemText(RepackMethodCMB.SelectedItem), AESKey.Text);
                 if (res != 0)
                 {
