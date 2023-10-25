@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 using UnrealUnZen;
@@ -114,21 +115,27 @@ namespace UEcastocLib
             {
                 for (int i = 0; i < files.Count; i++)
                 {
-                    byte[] b;
+                    MemoryMappedFile mmf;
+                    long SizeOfmmf;
                     string pathToread = Path.Combine(dir.Replace("/", "\\"), files[i].FilePath.Replace("/", "\\"));
                     if (!File.Exists(pathToread))
                     {
                         if (files[i].FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, and also its not the dependency file.");
-                        b = m.Deps.DeparseDependencies();
+                        byte[] ManifestCreatedFile = m.Deps.DeparseDependencies();
+                        mmf = Helpers.CreateMemoryMappedFileFromByteArray(ManifestCreatedFile, files[i].FilePath);
+                        SizeOfmmf = ManifestCreatedFile.LongLength;
                         files[i].FilePath = "";
                         files[i].ChunkID = FIoChunkID.FromHexString(depHexString);
-                        files[i].ChunkID.ID = Helpers.RandomUlong(); //it must be random for packing
+                        files[i].ChunkID.ID = Helpers.RandomUlong();
                     }
                     else
                     {
-                        b = File.ReadAllBytes(pathToread);
+                        mmf = MemoryMappedFile.CreateFromFile(pathToread, FileMode.Open, Path.GetFileNameWithoutExtension(pathToread));
+                        SizeOfmmf = new FileInfo(pathToread).Length;
                     }
-                    files[i].OffLen.SetLength((ulong)b.Length);
+                    
+
+                    files[i].OffLen.SetLength((ulong)SizeOfmmf);
 
                     if (i == 0)
                     {
@@ -141,20 +148,22 @@ namespace UEcastocLib
                         files[i].OffLen.SetOffset(off);
                     }
 
-                    files[i].Metadata.ChunkHash = new FIoChunkHash(Helpers.SHA1Hash(b));
+                    files[i].Metadata.ChunkHash = new FIoChunkHash(Helpers.SHA1Hash(mmf));
                     files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
-                    while (b.Length != 0)
+                    long PosOfReaded = 0;
+                    long RemainSize = SizeOfmmf;
+                    while (PosOfReaded != SizeOfmmf)
                     {
                         var block = new FIoStoreTocCompressedBlockEntry();
-                        var chunkLen = b.Length; //19082
+                        var chunkLen = RemainSize;
                         if (chunkLen > CompSize)
                         {
                             chunkLen = CompSize;
                         }
-                        var chunk = new byte[chunkLen];
-                        Array.Copy(b, chunk, chunkLen);
-
+                        RemainSize -= chunkLen;
+                        var chunk = mmf.ReadBytesOfFile(PosOfReaded, chunkLen);
+                        PosOfReaded += chunkLen;
                         var cChunkPtr = compFun(chunk);
                         var compressedChunk = cChunkPtr.ToArray();
 
@@ -164,7 +173,6 @@ namespace UEcastocLib
                         block.SetCompressedSize((uint)compressedChunk.Length);
 
                         compressedChunk = compressedChunk.Concat(Helpers.GetRandomBytes((0x10 - (compressedChunk.Length % 0x10)) & (0x10 - 1))).ToArray();
-                        b = b.Skip(chunkLen).ToArray();
                         files[i].CompressionBlocks.Add(block);
 
                         f.Write(compressedChunk, 0, compressedChunk.Length);

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -70,7 +69,7 @@ namespace OodleExtension
         }
 
         [DllImport("oo2core_9_win64.dll")]
-        private static extern long OodleLZ_Compress(OodleLZ_OodleFormat format,byte[] buffer,long bufferSize,byte[] outputBuffer,OodleLZ_OodleCompressionLevel level,long opts, long context, long unused, long scratch, long scratch_size);
+        private static extern long OodleLZ_Compress(OodleLZ_OodleFormat format, byte[] buffer, long bufferSize, byte[] outputBuffer, OodleLZ_OodleCompressionLevel level, long opts, long context, long unused, long scratch, long scratch_size);
         [DllImport("oo2core_9_win64.dll")]
         private static extern long OodleLZ_Decompress(byte[] buffer, long bufferSize, byte[] outputBuffer, long outputBufferSize, OodleLZ_FuzzSafe fuzz, OodleLZ_CheckCRC crc, OodleLZ_Verbosity verbosity, long context, long e, long callback, long callback_ctx, long scratch, long scratch_size, OodleLZ_Decode_ThreadPhase thread_phase);
         [DllImport("oo2core_9_win64.dll")]
