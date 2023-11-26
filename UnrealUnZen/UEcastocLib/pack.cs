@@ -115,14 +115,14 @@ namespace UEcastocLib
             {
                 for (int i = 0; i < files.Count; i++)
                 {
-                    MemoryMappedFile mmf;
+                    MemoryMappedFile MemoryMappedFile;
                     long SizeOfmmf;
                     string pathToread = Path.Combine(dir.Replace("/", "\\"), files[i].FilePath.Replace("/", "\\"));
                     if (!File.Exists(pathToread))
                     {
                         if (files[i].FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, and also its not the dependency file.");
                         byte[] ManifestCreatedFile = m.Deps.DeparseDependencies();
-                        mmf = Helpers.CreateMemoryMappedFileFromByteArray(ManifestCreatedFile, files[i].FilePath);
+                        MemoryMappedFile = Helpers.CreateMemoryMappedFileFromByteArray(ManifestCreatedFile, files[i].FilePath);
                         SizeOfmmf = ManifestCreatedFile.LongLength;
                         files[i].FilePath = "";
                         files[i].ChunkID = FIoChunkID.FromHexString(depHexString);
@@ -130,7 +130,7 @@ namespace UEcastocLib
                     }
                     else
                     {
-                        mmf = MemoryMappedFile.CreateFromFile(pathToread, FileMode.Open, Path.GetFileNameWithoutExtension(pathToread));
+                        MemoryMappedFile = MemoryMappedFile.CreateFromFile(pathToread, FileMode.Open);
                         SizeOfmmf = new FileInfo(pathToread).Length;
                     }
                     
@@ -148,7 +148,7 @@ namespace UEcastocLib
                         files[i].OffLen.SetOffset(off);
                     }
 
-                    files[i].Metadata.ChunkHash = new FIoChunkHash(Helpers.SHA1Hash(mmf));
+                    files[i].Metadata.ChunkHash = new FIoChunkHash(Helpers.SHA1Hash(MemoryMappedFile));
                     files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
                     long PosOfReaded = 0;
@@ -162,7 +162,7 @@ namespace UEcastocLib
                             chunkLen = CompSize;
                         }
                         RemainSize -= chunkLen;
-                        var chunk = mmf.ReadBytesOfFile(PosOfReaded, chunkLen);
+                        var chunk = MemoryMappedFile.ReadBytesOfFile(PosOfReaded, chunkLen);
                         PosOfReaded += chunkLen;
                         var cChunkPtr = compFun(chunk);
                         var compressedChunk = cChunkPtr.ToArray();
