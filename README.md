@@ -1,3 +1,6 @@
+> [!WARNING]
+> This tool is being rewritten with new libraries. The bugs in the current version will be fixed in the next version. You can also use FModel to extract assets from utoc and ucas
+
 # UnrealUnZen
 ### Unreal Engine Archive Unpacking and Packing Tool
 
