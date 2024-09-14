@@ -11,7 +11,7 @@ ZenLoader consists of two parts
 
 The important point of this structure is that you cannot add a new Asset to the game because each Asset contains a unique ID. And due to this unique ID, the tool must first read the game archives and then create the new archive.
 
-The tool checks the game archives using the CUE4Parse library and after receiving the required information of the Assets, it creates a patch based on your edited files.
+The tool checks the game archives using the [CUE4Parse](https://github.com/FabianFG/CUE4Parse) library and after receiving the required information of the Assets, it creates a patch based on your edited files.
 ## Usage
 
 ```console
@@ -43,7 +43,7 @@ Making a patch for a ue5 game:
 ```
 Some important notes :
 - You DON'T have to pack the WHOLE ARCHIVE that you wanna patch! just put the assets that you wanna patch
-- This DOESN'T support extracting assets from ZenLoader archives. use FModel.
+- This DOESN'T support extracting assets from ZenLoader archives. use [FModel](https://github.com/4sval/FModel).
 - This tool supports multi archive patching. check example section.
 - For games that have archive signature (.sig file for each utoc) this tool doesn't work until you bypass the sig loader.
 - Utoc structure can be different in games (unlikely) and your patch may not be loaded by the game and I don't have enough time to support all the games in the world.
