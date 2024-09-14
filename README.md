@@ -1,42 +1,78 @@
-> [!WARNING]
-> This tool is being rewritten with new libraries. The bugs in the current version will be fixed in the next version. You can also use FModel to extract assets from utoc and ucas
-
-# UnrealUnZen
-### Unreal Engine Archive Unpacking and Packing Tool
-
+# UnrealReZen
 ![GitHub Stars](https://img.shields.io/github/stars/rm-NoobInCoding/UnrealUnZen) ![GitHub Forks](https://img.shields.io/github/forks/rm-NoobInCoding/UnrealUnZen) [![build and test](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml) [![Github All Releases](https://img.shields.io/github/downloads/rm-NoobInCoding/UnrealUnZen/total.svg)]()
 
+A tool for creating and packing Unreal Engine .Utoc and .Ucas files.
 
-### Overview:
+## How it works
+First, it is better to know how ZenLoader files work
+ZenLoader consists of two parts
+- .utoc, which stands for Unreal table of contents, contains the information of the assets, such as ID, offset, size, etc.
+- .ucas, which contains the content of Assets in compressed or raw form
 
-UnrealUnZen is a powerful and versatile modding tool designed for the seamless unpacking and packing of Unreal Engine Archive files, including the new utoc and ucas formats. Whether you're a game modder, developer, or enthusiast, UnrealUnZen provides an intuitive and efficient solution for manipulating game assets within the Unreal Engine ecosystem.
+The important point of this structure is that you cannot add a new Asset to the game because each Asset contains a unique ID. And due to this unique ID, the tool must first read the game archives and then create the new archive.
 
-**Key Features:**
+The tool checks the game archives using the CUE4Parse library and after receiving the required information of the Assets, it creates a patch based on your edited files.
+## Usage
 
-- **Unpacking Brilliance:** Easily extract game assets from utoc and ucas files, allowing you to access, modify, and enhance game content with ease.
+```console
+> UnrealReZen.exe --help
+UnrealReZen 1.0.0
+Copyright (C) 2024 UnrealReZen
+USAGE:
+Making a patch for a ue5 game:
+  UnrealReZen.exe --content-path C:/Games/MyGame/ExportedFiles --compression-format Zlib --engine-version GAME_UE5_1
+  --game-dir C:/Games/MyGame --output-path C:/Games/MyGame/TestPatch_P.utoc
 
-- **Effortless Packing:** Streamline the process of repackaging your modified assets back into Unreal Engine Archive files, ensuring compatibility with your favorite games.
+  -g, --game-dir          Required. Path to the game directory (for loading UCAS and UTOC files).
 
-- **UEcastoc Integration:** Built upon the robust [UEcastoc](https://github.com/gitMenv/UEcastoc) library, UnrealUnZen benefits from its reliability and performance, making it a dependable choice for modding projects.
+  -c, --content-path      Required. Path of the content that the you want to pack.
 
-- **User-Friendly Interface:** The tool's user interface is designed with modders in mind, featuring a straightforward workflow that minimizes complexity and maximizes productivity.
+  -e, --engine-version    Required. Unreal Engine version (e.g., GAME_UE4_0).
 
-- **Cross-Platform Compatibility:** UnrealUnZen is compatible with multiple operating systems, making it accessible to modders regardless of their preferred development environment.
+  -o, --output-path       Required. Path (including file name) for the packed utoc file.
 
-**Getting Started:**
+  -a, --aes-key           AES key of the game (only if its encrypted)
 
-*will added later
+  --compression-format    (Default: Zlib) Compression format (None, Zlib, Oodle, LZ4).
 
-**Contributing:**
+  --mount-point           (Default: ../../../) Mount point of packed archive
 
-We welcome contributions from the modding community to enhance UnealUnZen's functionality and support for various Unreal Engine games. Feel free to fork the repository, make improvements, and submit pull requests.
+  --help                  Display this help screen.
 
-**License:**
+  --version               Display version information.
+```
+Some important notes :
+- You DON'T have to pack the WHOLE ARCHIVE that you wanna patch! just put the assets that you wanna patch
+- This DOESN'T support extracting assets from ZenLoader archives. use FModel.
+- This tool supports multi archive patching. check example section.
+- For games that have archive signature (.sig file for each utoc) this tool doesn't work until you bypass the sig loader.
+- Utoc structure can be different in games (unlikely) and your patch may not be loaded by the game and I don't have enough time to support all the games in the world.
 
-UnrealUnZen is open-source software released under the [MIT License](LICENSE), granting you the freedom to use, modify, and distribute it as you see fit.
 
-**Contact:**
 
-For questions, suggestions, or bug reports, please open an issue on the GitHub repository. Your feedback is invaluable in improving UnrealUnZen and ensuring its continued usefulness to the modding community.
+## Examples
+Lets mod a game. For example i wanna patch two assets in "The Casting of Frank Stone".
+- `pakchunk3-Windows.utoc/SMG037UE5/Content/Animations/Cinematics/curiosity_howmuch.uasset`
+- `pakchunk7-Windows.utoc/SMG037UE5/Content/Animations/Cinematics/warning_reset_CHRISEND_CHILD_BODY.uasset`
 
-**Join the Modding Revolution with UnrealUnZen!**
+I will export the through FModel, edit them and put them in a folder that I named MyPatchedContent (with same path root for each asset).
+- `MyPatchedContent/SMG037UE5/Content/Animations/Cinematics/curiosity_howmuch.uasset`
+- `MyPatchedContent/SMG037UE5/Content/Animations/Cinematics/warning_reset_CHRISEND_CHILD_BODY.uasset`
+
+Now Because the game is UE 5.1 and its not encrypted I run the tool with this args :
+
+```
+UnrealReZen.exe --content-path C:/TheCastingofFrankStone/MyPatchedContent --compression-format Zlib --engine-version GAME_UE5_1 --game-dir C:/TheCastingofFrankStone/SMG037UE5/Content/Paks  --output-path C:/TheCastingofFrankStone/SMG037UE5/Content/Paks/MyPatch_P.utoc
+```
+
+*To find out the version of Unreal Engine used in a game, just check the version of the bootstap executable file of the game (executable file that is in the root of the game folder)
+## Contributing
+
+We welcome contributions from the modding community to enhance UnealReZen's functionality and support for various Unreal Engine games. Feel free to fork the repository, make improvements, and submit pull requests.
+
+
+
+## License
+
+[GNU General Public License v3.0](https://choosealicense.com/licenses/gpl-3.0/)
+
