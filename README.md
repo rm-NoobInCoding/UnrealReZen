@@ -51,11 +51,11 @@ Some important notes :
 
 
 ## Examples
-Lets mod a game. For example i wanna patch two assets in "The Casting of Frank Stone".
+Lets mod a game. For example i wanna mod two assets in "The Casting of Frank Stone".
 - `pakchunk3-Windows.utoc/SMG037UE5/Content/Animations/Cinematics/curiosity_howmuch.uasset`
 - `pakchunk7-Windows.utoc/SMG037UE5/Content/Animations/Cinematics/warning_reset_CHRISEND_CHILD_BODY.uasset`
 
-I will export the through FModel, edit them and put them in a folder that I named MyPatchedContent (with same path root for each asset).
+I will export the assets with FModel, edit them and put them in a folder that I named MyPatchedContent (with same path root for each asset).
 - `MyPatchedContent/SMG037UE5/Content/Animations/Cinematics/curiosity_howmuch.uasset`
 - `MyPatchedContent/SMG037UE5/Content/Animations/Cinematics/warning_reset_CHRISEND_CHILD_BODY.uasset`
 
@@ -64,6 +64,7 @@ Now Because the game is UE 5.1 and its not encrypted I run the tool with this ar
 ```
 UnrealReZen.exe --content-path C:/TheCastingofFrankStone/MyPatchedContent --compression-format Zlib --engine-version GAME_UE5_1 --game-dir C:/TheCastingofFrankStone/SMG037UE5/Content/Paks  --output-path C:/TheCastingofFrankStone/SMG037UE5/Content/Paks/MyPatch_P.utoc
 ```
+This will make three files (MyPatch_P.utoc / MyPatch_P.ucas / MyPatch_P.pak) in the "C:/TheCastingofFrankStone/SMG037UE5/Content/Paks/" folder. Now I can run the game!
 
 *To find out the version of Unreal Engine used in a game, just check the version of the bootstap executable file of the game (executable file that is in the root of the game folder)
 ## Contributing
