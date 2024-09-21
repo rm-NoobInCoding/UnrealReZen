@@ -43,7 +43,7 @@ Making a patch for a ue5 game:
 ```
 Some important notes :
 - You DON'T have to pack the WHOLE ARCHIVE that you wanna patch! just put the assets that you wanna patch
-- This DOESN'T support extracting assets from ZenLoader archives. use [FModel](https://github.com/4sval/FModel).
+- This tool DOESN'T support extracting assets from ZenLoader archives. use [FModel](https://github.com/4sval/FModel).
 - This tool supports multi archive patching. check example section.
 - For games that have archive signature (.sig file for each utoc) this tool doesn't work until you bypass the sig loader.
 - Utoc structure can be different in games (unlikely) and your patch may not be loaded by the game and I don't have enough time to support all the games in the world.
@@ -61,7 +61,7 @@ I will export the assets with FModel, edit them and put them in a folder that I 
 
 Now Because the game is UE 5.1 and its not encrypted I run the tool with this args :
 
-```
+```console
 UnrealReZen.exe --content-path C:/TheCastingofFrankStone/MyPatchedContent --compression-format Zlib --engine-version GAME_UE5_1 --game-dir C:/TheCastingofFrankStone/SMG037UE5/Content/Paks  --output-path C:/TheCastingofFrankStone/SMG037UE5/Content/Paks/MyPatch_P.utoc
 ```
 This will make three files (MyPatch_P.utoc / MyPatch_P.ucas / MyPatch_P.pak) in the "C:/TheCastingofFrankStone/SMG037UE5/Content/Paks/" folder. Now I can run the game!
