@@ -2,6 +2,8 @@
 ![GitHub Stars](https://img.shields.io/github/stars/rm-NoobInCoding/UnrealUnZen) ![GitHub Forks](https://img.shields.io/github/forks/rm-NoobInCoding/UnrealUnZen) [![build and test](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/rm-NoobInCoding/UnrealUnZen/actions/workflows/dotnet-desktop.yml) [![Github All Releases](https://img.shields.io/github/downloads/rm-NoobInCoding/UnrealUnZen/total.svg)]()
 
 A tool for creating and packing Unreal Engine .Utoc and .Ucas files.
+> [!NOTE]
+> This tool is only for ZenLoader archive files. The files inside the archive (like *.uasset) are not within the scope of this tool. Please do not create an issue for these files!
 
 ## How it works
 First, it is better to know how ZenLoader files work
