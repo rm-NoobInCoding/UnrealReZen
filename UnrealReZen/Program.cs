@@ -35,6 +35,9 @@ namespace UnrealReZen
         [Option("mount-point", Required = false, Default = "../../../", HelpText = "Mount point of packed archive")]
         public string MountPoint { get; set; }
 
+        [Option("no-dummy-dep", Required = false, HelpText = "Prevents the creation of a dummy dependency file")]
+        public bool NoDummyDep { get; set; }
+
         [Usage(ApplicationAlias = "UnrealReZen.exe")]
         public static IEnumerable<Example> Examples
         {
@@ -118,7 +121,10 @@ namespace UnrealReZen
             Dependency m = new() { Deps = new DependenciesData { ChunkIDToDependencies = [] }, Files = [] };
             List<string> FilesToRepack = new(Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories));
             var newContainerID = CryptographyHelpers.RandomUlong();
-            m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, (byte)EIoChunkType.ContainerHeader), Filepath = Constants.DepFileName });
+            if (!opts.NoDummyDep)
+            {
+                m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, (byte)EIoChunkType.ContainerHeader), Filepath = Constants.DepFileName });
+            }
             m.Deps.ThisPackageID = newContainerID;
             foreach (var file in FilesToRepack)
             {
