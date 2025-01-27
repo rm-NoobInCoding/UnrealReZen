@@ -125,7 +125,7 @@ namespace UnrealReZen
                 string filename = file.Replace(opts.ContentPath + "\\", "").Replace("\\", "/");
                 Log.Information("Mounting " + Path.GetFileName(filename));
                 var filedata = provider.Files.Values.Where(a => a.Path.Equals(filename, StringComparison.CurrentCultureIgnoreCase));
-                if (filedata == null)
+                if (filedata == null || !filedata.Any())
                 {
                     Log.Warning("Error! Cannot find file " + filename + " in archives.");
                     Log.Fatal("Repack aborted!");
