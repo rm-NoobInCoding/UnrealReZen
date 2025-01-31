@@ -35,6 +35,9 @@ namespace UnrealReZen
         [Option("mount-point", Required = false, Default = "../../../", HelpText = "Mount point of packed archive")]
         public string MountPoint { get; set; }
 
+        [Option("game-dir-top-only", Required = false, HelpText = "When enabled, restricts the game directory search to the top-level only.")]
+        public bool GameDirTopOnly { get; set; }
+
         [Usage(ApplicationAlias = "UnrealReZen.exe")]
         public static IEnumerable<Example> Examples
         {
@@ -96,7 +99,8 @@ namespace UnrealReZen
             Log.Information("Loading Game Archives...");
             try
             {
-                provider = new DefaultFileProvider(opts.GameDirectory, SearchOption.AllDirectories, true, new VersionContainer((EGame)engineVersion));
+                var searchOption = opts.GameDirTopOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
+                provider = new DefaultFileProvider(opts.GameDirectory, searchOption, true, new VersionContainer((EGame)engineVersion));
                 provider.Initialize();
                 provider.SubmitKey(new FGuid(), aesKey);
                 provider.LoadLocalization(ELanguage.English);
