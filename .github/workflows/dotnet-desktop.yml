@@ -27,7 +27,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install dependencies
-      run: nuget restore UnrealUnZen/packages.config -PackagesDirectory Packages
+      run: nuget restore UnrealReZen/packages.config -PackagesDirectory Packages
       
     - name: Build
       run: dotnet build --configuration Release
