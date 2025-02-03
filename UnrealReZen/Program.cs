@@ -81,7 +81,7 @@ namespace UnrealReZen
                 Log.Information("List of supported engine versions: " + string.Join("\n", Enum.GetNames(typeof(EGame))));
                 return;
             }
-            if (!Constants.CompressionTypes.Contains(opts.CompressionFormat))
+            if (!Constants.CompressionTypes.Contains(opts.CompressionFormat.ToLower()))
             {
                 Log.Fatal($"Unsupported compression format : {opts.CompressionFormat}");
                 return;
