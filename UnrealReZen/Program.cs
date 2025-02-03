@@ -68,7 +68,7 @@ namespace UnrealReZen
 
         static void RunOptionsAndReturnExitCode(Options opts)
         {
-            if (!CUE4Parse.Compression.Oodle.LoadOodleDll())
+            if (!CUE4Parse.Compression.OodleHelper.DownloadOodleDll())
             {
                 Log.Fatal("UnrealReZen failed to download the oodle dll. please check you internet connection or place oo2core_9_win64.dll in the tool directory");
                 Console.ReadLine();
