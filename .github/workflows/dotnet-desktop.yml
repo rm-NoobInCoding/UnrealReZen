@@ -6,31 +6,31 @@ on:
     paths:
     - '**.cs'
     - '**.csproj'
-
-env:
-  DOTNET_VERSION: '3.1.x' # The .NET SDK version to use
+  push:
+    branches:
+      - master
+  workflow_dispatch:
 
 jobs:
   build-and-test:
 
     name: build-and-test-${{matrix.os}}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest]
+    runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Install dependencies
-      run: nuget restore UnrealReZen/packages.config -PackagesDirectory Packages
-      
-    - name: Build
-      run: dotnet build --configuration Release
+    - name: Checkout code
+      uses: actions/checkout@v3
     
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run tests
+      run: dotnet test --no-build --verbosity normal --configuration Release
