@@ -121,6 +121,11 @@ namespace UnrealReZen
                 return;
             }
 
+            foreach (var vfs in provider.MountedVfs)
+            {
+                vfs.Dispose();
+            }
+
             Log.Information("Packing Contents...");
             Dependency m = new() { Deps = new DependenciesData { ChunkIDToDependencies = [] }, Files = [] };
             List<string> FilesToRepack = new(Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories));
