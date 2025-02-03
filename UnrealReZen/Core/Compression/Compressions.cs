@@ -1,5 +1,6 @@
-using Ionic.Zlib;
 using K4os.Compression.LZ4.Streams;
+using OodleDotNet;
+using ZlibngDotNet;
 
 namespace UnrealReZen.Core.Compression
 {
@@ -39,23 +40,26 @@ namespace UnrealReZen.Core.Compression
 
         private static byte[] CompressZlib(byte[] inData)
         {
-            using (var outputStream = new MemoryStream())
-            using (var compressionStream = new ZlibStream(outputStream, CompressionMode.Compress))
+            using var _zlib = new Zlibng(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.ZlibHelper.DLL_NAME));
+            var compressedBufferSize = (int)_zlib.CompressBound(inData.Length);
+            var compressedBuffer = new byte[compressedBufferSize];
+            var compressionResult = _zlib.Compress(compressedBuffer, inData, out int compressedSize);
+            if (compressionResult.CompareTo(ZlibngCompressionResult.Ok) != 0)
             {
-                compressionStream.Write(inData, 0, inData.Length);
-                compressionStream.Close();
-                return outputStream.ToArray();
+                throw new Exception($"Zlib compression failed with error code {compressionResult}");
             }
+            return compressedBuffer;
+
         }
 
         private static byte[] CompressOodle(byte[] inData)
         {
-            if (!IsOodleDllExist())
-            {
-                throw new Exception("oo2core_9_win64.dll was not found (oodle compression)");
-            }
-            var compressedData = Oodle.Compress(inData, inData.Length, Oodle.OodleLZ_OodleFormat.Kraken, Oodle.OodleLZ_OodleCompressionLevel.Optimal3);
-            return compressedData;
+            const OodleCompressor compressor = OodleCompressor.Kraken;
+            using var _oodle = new Oodle(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.OodleHelper.OODLE_DLL_NAME));
+            var compressedBufferSize = (int)_oodle.GetCompressedBufferSizeNeeded(compressor, inData.Length);
+            var compressedBuffer = new byte[compressedBufferSize];
+            var compressedSize = (int)_oodle.Compress(compressor, OodleCompressionLevel.Optimal3, inData, compressedBuffer);
+            return compressedBuffer;
         }
 
         private static byte[] CompressLZ4(byte[] inData)
@@ -69,12 +73,6 @@ namespace UnrealReZen.Core.Compression
                 return outputStream.ToArray();
             }
 
-        }
-
-        private static bool IsOodleDllExist()
-        {
-            var dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "oo2core_9_win64.dll");
-            return File.Exists(dllPath);
         }
     }
 }

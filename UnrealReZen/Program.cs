@@ -1,5 +1,6 @@
 ﻿using CommandLine;
 using CommandLine.Text;
+using CUE4Parse.Compression;
 using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.IO;
@@ -39,7 +40,7 @@ namespace UnrealReZen
         [Option("container-id", Required = false, HelpText = "Container Id of packed archive (default is a random 8-byte number)")]
         public ulong? ContainerId { get; set; }
 
-        [Option("game-dir-top-only", Required = false, HelpText = "When enabled, restricts the game directory search to the top-level only.")]
+        [Option("game-dir-top-only", Required = false, Default = false, HelpText = "When enabled, restricts the game directory search to the top-level only.")]
         public bool GameDirTopOnly { get; set; }
 
         [Usage(ApplicationAlias = "UnrealReZen.exe")]
@@ -69,9 +70,16 @@ namespace UnrealReZen
 
         static void RunOptionsAndReturnExitCode(Options opts)
         {
-            if (!CUE4Parse.Compression.OodleHelper.DownloadOodleDll())
+            Constants.ToolDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (!OodleHelper.DownloadOodleDll(Path.Combine(Constants.ToolDirectory, OodleHelper.OODLE_DLL_NAME)))
             {
                 Log.Fatal("UnrealReZen failed to download the oodle dll. please check you internet connection or place oo2core_9_win64.dll in the tool directory");
+                Console.ReadLine();
+                return;
+            }
+            if (!ZlibHelper.DownloadDll(Path.Combine(Constants.ToolDirectory, ZlibHelper.DLL_NAME)))
+            {
+                Log.Fatal("UnrealReZen failed to download the zlib dll. please check you internet connection or place zlib-ng2.dll in the tool directory");
                 Console.ReadLine();
                 return;
             }
@@ -86,7 +94,7 @@ namespace UnrealReZen
                 Log.Fatal($"Unsupported compression format : {opts.CompressionFormat}");
                 return;
             }
-            if(Path.GetExtension(opts.OutputPath) != ".utoc")
+            if (Path.GetExtension(opts.OutputPath) != ".utoc")
             {
                 Log.Fatal($"Output path must contains utoc extension");
                 return;

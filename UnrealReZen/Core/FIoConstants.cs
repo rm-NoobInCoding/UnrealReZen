@@ -3,6 +3,7 @@
     public static class Constants
     {
         public static string[] CompressionTypes = ["none", "zlib", "oodle", "lz4"];
+        public static string ToolDirectory = "";
         public static string DefaultAES = "0x" + new string('0', 64);
         public static string MountPoint = "../../../";
         public const string MagicUtoc = "-==--==--==--==-";
