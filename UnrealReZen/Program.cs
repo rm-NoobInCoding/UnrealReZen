@@ -6,6 +6,7 @@ using CUE4Parse.UE4.IO;
 using CUE4Parse.UE4.IO.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
+using CUE4Parse.UE4.VirtualFileSystem;
 using Serilog;
 using UnrealReZen.Core;
 using UnrealReZen.Core.Helpers;
@@ -136,7 +137,7 @@ namespace UnrealReZen
             {
                 string filename = file.Replace(opts.ContentPath + "\\", "").Replace("\\", "/");
                 Log.Information("Mounting " + Path.GetFileName(filename));
-                var filedata = provider.Files.Values.Where(a => a.Path.Equals(filename, StringComparison.CurrentCultureIgnoreCase));
+                var filedata = provider.Files.Values.Where(a => Path.GetExtension(((AbstractVfsReader)((VfsEntry)a).Vfs).Name) == ".utoc" && a.Path.Equals(filename, StringComparison.CurrentCultureIgnoreCase));
                 if (filedata == null || !filedata.Any())
                 {
                     Log.Warning("Error! Cannot find file " + filename + " in archives.");
