@@ -35,6 +35,9 @@ namespace UnrealReZen
         [Option("mount-point", Required = false, Default = "../../../", HelpText = "Mount point of packed archive")]
         public string MountPoint { get; set; }
 
+        [Option("container-id", Required = false, HelpText = "Container Id of packed archive (default is a random 8-byte number)")]
+        public ulong? ContainerId { get; set; }
+
         [Option("game-dir-top-only", Required = false, HelpText = "When enabled, restricts the game directory search to the top-level only.")]
         public bool GameDirTopOnly { get; set; }
 
@@ -121,7 +124,7 @@ namespace UnrealReZen
             Log.Information("Packing Contents...");
             Dependency m = new() { Deps = new DependenciesData { ChunkIDToDependencies = [] }, Files = [] };
             List<string> FilesToRepack = new(Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories));
-            var newContainerID = CryptographyHelpers.RandomUlong();
+            var newContainerID = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
             m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, (byte)EIoChunkType.ContainerHeader), Filepath = Constants.DepFileName });
             m.Deps.ThisPackageID = newContainerID;
             foreach (var file in FilesToRepack)
