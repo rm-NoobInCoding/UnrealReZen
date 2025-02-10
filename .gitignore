@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/UnrealReZen/Properties/launchSettings.json
+/UnrealReZen/Properties/PublishProfiles/FolderProfile.pubxml
+/UnrealReZen/Properties/PublishProfiles/FolderProfile.pubxml.user

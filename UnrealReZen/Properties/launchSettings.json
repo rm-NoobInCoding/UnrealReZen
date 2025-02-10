@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "UnrealReZen": {
-      "commandName": "Project",
-      "commandLineArgs": "-g \"C:\\Games\\The Casting of Frank Stone\\SMG037UE5\\Content\\Paks\" -c \"C:\\Games\\The Casting of Frank Stone\\Testing\" -e GAME_UE5_1 -o \"C:\\Games\\The Casting of Frank Stone\\Farsisaz_P.utoc\""
-    }
-  }
-}
