@@ -77,7 +77,7 @@ namespace UnrealReZen.Core
 
             var compMethodNumber = !compression.Equals("none", StringComparison.CurrentCultureIgnoreCase) ? (byte)1 : (byte)0;
             var compFun = CompressionUtils.GetCompressionFunction(compression) ?? throw new Exception("Could not find " + compression + " method. Please use None, Oodle or Zlib");
-            using var f = File.Create(Path.ChangeExtension(outFilename, ".ucas"));
+            using var f = File.Open(Path.ChangeExtension(outFilename, ".ucas"), FileMode.Create);
             for (int i = 0; i < files.Count; i++)
             {
                 MemoryMappedFile mmf;

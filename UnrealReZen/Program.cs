@@ -70,7 +70,7 @@ namespace UnrealReZen
 
         static void RunOptionsAndReturnExitCode(Options opts)
         {
-            Constants.ToolDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            Constants.ToolDirectory = AppDomain.CurrentDomain.BaseDirectory;
             if (!OodleHelper.DownloadOodleDll(Path.Combine(Constants.ToolDirectory, OodleHelper.OODLE_DLL_NAME)))
             {
                 Log.Fatal("UnrealReZen failed to download the oodle dll. please check you internet connection or place oo2core_9_win64.dll in the tool directory");
@@ -141,6 +141,11 @@ namespace UnrealReZen
             var newContainerID = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
             m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, (byte)EIoChunkType.ContainerHeader), Filepath = Constants.DepFileName });
             m.Deps.ThisPackageID = newContainerID;
+            if (FilesToRepack.Count == 0)
+            {
+                Log.Fatal("No valid files found in the content path");
+                return;
+            }
             foreach (var file in FilesToRepack)
             {
                 string filename = file.Replace(opts.ContentPath + "\\", "").Replace("\\", "/");
@@ -148,9 +153,8 @@ namespace UnrealReZen
                 var filedata = provider.Files.Values.Where(a => Path.GetExtension(((AbstractVfsReader)((VfsEntry)a).Vfs).Name) == ".utoc" && a.Path.Equals(filename, StringComparison.CurrentCultureIgnoreCase));
                 if (filedata == null || !filedata.Any())
                 {
-                    Log.Warning("Error! Cannot find file " + filename + " in archives.");
-                    Log.Fatal("Repack aborted!");
-                    return;
+                    Log.Warning("Skipping " + filename + " because its not found in archives.");
+                    continue;
                 }
                 foreach (var dep in filedata)
                 {
