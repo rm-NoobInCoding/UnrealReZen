@@ -80,6 +80,8 @@ namespace UnrealReZen.Core
             using var f = File.Open(Path.ChangeExtension(outFilename, ".ucas"), FileMode.Create);
             for (int i = 0; i < files.Count; i++)
             {
+                WriteProgressBar(i, files.Count - 1);
+
                 MemoryMappedFile mmf;
                 long SizeOfmmf;
                 string pathToread = Path.Combine(dir.Replace("/", "\\"), files[i].FilePath.Replace("/", "\\"));
@@ -142,6 +144,20 @@ namespace UnrealReZen.Core
                 }
                 mmf.Dispose();
             }
+
+            // Add a line feed for the progress bar
+            Console.WriteLine("");
+        }
+
+        public static void WriteProgressBar(int count, int maxCount)
+        {
+            // Display a progress bar on the console.
+            // e.g. WriteProgressBar(54, 100)
+            //      [##########..........] 54/100
+            const int MaxProgress = 20;
+            var progress = count * MaxProgress / maxCount;
+            string str = new string('#', progress) + new string('.', MaxProgress - progress);
+            Console.Write($"\r[{str}] {count}/{maxCount}");
         }
 
         public static byte[] DeparseDirectoryIndex(List<AssetMetadata> files)
