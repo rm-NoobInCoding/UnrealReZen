@@ -59,7 +59,7 @@ namespace UnrealReZen.Core.Compression
             var compressedBufferSize = (int)_oodle.GetCompressedBufferSizeNeeded(compressor, inData.Length);
             var compressedBuffer = new byte[compressedBufferSize];
             var compressedSize = (int)_oodle.Compress(compressor, OodleCompressionLevel.Max, inData, compressedBuffer);
-            return compressedBuffer;
+            return [.. compressedBuffer.Take(compressedSize)];
         }
 
         private static byte[] CompressLZ4(byte[] inData)
