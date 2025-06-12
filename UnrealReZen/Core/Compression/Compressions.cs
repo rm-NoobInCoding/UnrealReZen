@@ -7,7 +7,7 @@ namespace UnrealReZen.Core.Compression
     public class CompressionUtils
     {
 
-        public static readonly Dictionary<string, Func<byte[], byte[]>> CompressionMethods = new Dictionary<string, Func<byte[], byte[]>>
+        public static readonly Dictionary<string, Func<byte[], byte[]>> CompressionMethods = new(StringComparer.OrdinalIgnoreCase)
         {
             { "None", CompressNone },
             { "Zlib", CompressZlib },
@@ -17,7 +17,7 @@ namespace UnrealReZen.Core.Compression
 
         public static byte[]? Compress(string method, byte[] inputData)
         {
-            if (CompressionMethods.TryGetValue(method.ToLower(), out var compressionFunction))
+            if (CompressionMethods.TryGetValue(method, out var compressionFunction))
             {
                 return compressionFunction(inputData);
             }
@@ -48,7 +48,7 @@ namespace UnrealReZen.Core.Compression
             {
                 throw new Exception($"Zlib compression failed with error code {compressionResult}");
             }
-            return compressedBuffer;
+            return compressedBuffer.AsSpan(0, compressedSize).ToArray();
 
         }
 
