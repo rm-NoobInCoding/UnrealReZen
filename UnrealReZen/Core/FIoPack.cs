@@ -1,5 +1,7 @@
 ﻿using CUE4Parse.Encryption.Aes;
 using CUE4Parse.UE4.IO.Objects;
+using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Versions;
 using System.Globalization;
 using System.IO.MemoryMappedFiles;
 using System.Text;
@@ -10,8 +12,10 @@ namespace UnrealReZen.Core
 {
     public static class Packer
     {
-        public static int PackToCasToc(string dir, Dependency m, string outFilename, string compression, FAesKey aes, string mountPoint, FIoDependencyFormat depver)
+        public static int PackToCasToc(string dir, Dependency m, string outFilename, string compression, FAesKey aes, string mountPoint, EGame gameVer)
         {
+            FIoDependencyFormat depver = gameVer >= EGame.GAME_UE5_0 ? FIoDependencyFormat.UE5 : FIoDependencyFormat.UE4;
+
             var fdata = new List<AssetMetadata>();
             AssetMetadata newEntry;
             Constants.MountPoint = mountPoint;
@@ -50,7 +54,7 @@ namespace UnrealReZen.Core
                 File.WriteAllBytes(Path.ChangeExtension(outFilename, ".ucas"), encrypted);
             }
 
-            var utocBytes = fdata.ConstructUtocFile(compression, aes);
+            var utocBytes = fdata.ConstructUtocFile(compression, aes, gameVer);
             File.WriteAllBytes(outFilename, utocBytes);
             File.WriteAllBytes(Path.ChangeExtension(outFilename, ".pak"), PakHolder.Packed_P);
             return fdata.Count;
@@ -217,7 +221,7 @@ namespace UnrealReZen.Core
             return wrapper.ToBytes();
         }
 
-        public static byte[] ConstructUtocFile(this List<AssetMetadata> files, string compression, FAesKey AESKey)
+        public static byte[] ConstructUtocFile(this List<AssetMetadata> files, string compression, FAesKey AESKey, EGame gameVer)
         {
             var udata = new UToc(new UTocHeader(), [], "", []);
 
@@ -241,7 +245,8 @@ namespace UnrealReZen.Core
             for (var i = 0; i < files.Count; i++)
             {
                 compressedBlocksCount += files[i].CompressionBlocks.Count;
-                if (files[i].ChunkID.Type == 10)
+                if ((gameVer < EGame.GAME_UE5_0 && files[i].ChunkID.Type == (byte)EIoChunkType.ContainerHeader) ||
+                    gameVer >= EGame.GAME_UE5_0 && files[i].ChunkID.Type == (byte)EIoChunkType5.ContainerHeader)
                 {
                     containerIndex = i;
                 }
