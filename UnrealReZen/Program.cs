@@ -139,7 +139,9 @@ namespace UnrealReZen
             Dependency m = new() { Deps = new DependenciesData { ChunkIDToDependencies = [] }, Files = [] };
             List<string> FilesToRepack = new(Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories));
             var newContainerID = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
-            m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, (byte)EIoChunkType.ContainerHeader), Filepath = Constants.DepFileName });
+
+            byte type = (EGame)engineVersion >= EGame.GAME_UE5_0 ? (byte)EIoChunkType5.ContainerHeader : (byte)EIoChunkType.ContainerHeader;
+            m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, type), Filepath = Constants.DepFileName });
             m.Deps.ThisPackageID = newContainerID;
             if (FilesToRepack.Count == 0)
             {
@@ -173,7 +175,7 @@ namespace UnrealReZen
                 }
             }
             Log.Information("Packing files...");
-            Packer.PackToCasToc(opts.ContentPath, m, opts.OutputPath, opts.CompressionFormat, aesKey, opts.MountPoint, (EGame)engineVersion > EGame.GAME_UE4_LATEST ? FIoDependencyFormat.UE5 : FIoDependencyFormat.UE4);
+            Packer.PackToCasToc(opts.ContentPath, m, opts.OutputPath, opts.CompressionFormat, aesKey, opts.MountPoint, (EGame)engineVersion);
             Console.WriteLine($"Done! {FilesToRepack.Count} file(s) packed");
 
         }
