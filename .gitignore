@@ -399,3 +399,6 @@ FodyWeavers.xsd
 /UnrealReZen/Properties/launchSettings.json
 /UnrealReZen/Properties/PublishProfiles/FolderProfile.pubxml
 /UnrealReZen/Properties/PublishProfiles/FolderProfile.pubxml.user
+
+# Claude Code
+.claude/
