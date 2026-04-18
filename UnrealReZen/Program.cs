@@ -110,15 +110,33 @@ namespace UnrealReZen
 
         private static bool EnsureNativeDlls()
         {
-            string? oodlePath = Path.Combine(Constants.ToolDirectory, OodleHelper.OodleFileName);
-            if (!OodleHelper.DownloadOodleDll(ref oodlePath))
+            try
             {
-                Log.Fatal($"UnrealReZen failed to download the oodle dll. please check your internet connection or place {OodleHelper.OodleFileName} in the tool directory");
+                OodleHelper.Initialize(Path.Combine(Constants.ToolDirectory, OodleHelper.OodleFileName));
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, $"Failed to initialize Oodle. Place {OodleHelper.OodleFileName} in the tool directory and try again.");
                 return false;
             }
-            if (!ZlibHelper.DownloadDll(Path.Combine(Constants.ToolDirectory, ZlibHelper.DLL_NAME)))
+            if (OodleHelper.Instance is null)
             {
-                Log.Fatal($"UnrealReZen failed to download the zlib dll. please check your internet connection or place {ZlibHelper.DLL_NAME} in the tool directory");
+                Log.Fatal($"Oodle was not registered. Place {OodleHelper.OodleFileName} in the tool directory or check your internet connection.");
+                return false;
+            }
+
+            try
+            {
+                ZlibHelper.Initialize(Path.Combine(Constants.ToolDirectory, ZlibHelper.DllName));
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, $"Failed to initialize Zlib. Place {ZlibHelper.DllName} in the tool directory and try again.");
+                return false;
+            }
+            if (ZlibHelper.Instance is null)
+            {
+                Log.Fatal($"Zlib was not registered. Place {ZlibHelper.DllName} in the tool directory or check your internet connection.");
                 return false;
             }
             return true;
