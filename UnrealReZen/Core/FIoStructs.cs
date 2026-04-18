@@ -160,11 +160,6 @@ namespace UnrealReZen.Core
         }
     }
 
-    public class FIoPerfectHashSeeds(uint hashSeed)
-    {
-        public uint HashSeed { get; set; } = hashSeed;
-    }
-
     public class FIoChunkID(ulong id, ushort index, byte padding, byte type)
     {
         public ulong ID { get; set; } = id;
@@ -334,7 +329,7 @@ namespace UnrealReZen.Core
 
     public class FIoStoreTocEntryMeta
     {
-        public FIoChunkHash ChunkHash { get; set; }
+        public required FIoChunkHash ChunkHash { get; set; }
         public FIoStoreTocEntryMetaFlags Flags { get; set; }
         public void Write(MemoryStream br)
         {

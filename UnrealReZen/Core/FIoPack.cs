@@ -38,27 +38,27 @@ namespace UnrealReZen.Core
                     FilePath = v.Filepath,
                     ChunkID = v.ChunkID,
                     OffLen = offlen,
-                    Metadata = new FIoStoreTocEntryMeta(),
+                    Metadata = new FIoStoreTocEntryMeta { ChunkHash = new FIoChunkHash(new byte[20]) },
                     CompressionBlocks = [],
                 };
 
                 fdata.Add(newEntry);
             }
 
-            fdata.PackFilesToUcas(m, dir, outFilename, compression, depver);
+            PackFilesToUcas(fdata, m, dir, outFilename, compression, depver);
 
             if (!string.Equals(aes.KeyString, Constants.DefaultAES, StringComparison.OrdinalIgnoreCase))
             {
                 EncryptUcasInPlace(Path.ChangeExtension(outFilename, ".ucas"), aes.Key);
             }
 
-            var utocBytes = fdata.ConstructUtocFile(compression, aes, gameVer);
+            var utocBytes = ConstructUtocFile(fdata, compression, aes, gameVer);
             File.WriteAllBytes(outFilename, utocBytes);
             File.WriteAllBytes(Path.ChangeExtension(outFilename, ".pak"), PakHolder.Packed_P);
             return fdata.Count;
         }
 
-        public static void PackFilesToUcas(this List<AssetMetadata> files, Dependency m, string dir, string outFilename, string compression, FIoDependencyFormat depver)
+        public static void PackFilesToUcas(List<AssetMetadata> files, Dependency m, string dir, string outFilename, string compression, FIoDependencyFormat depver)
         {
 
             var subsetDependencies = new Dictionary<ulong, FFilePackageStoreEntry>();
@@ -229,40 +229,31 @@ namespace UnrealReZen.Core
             if (start < path.Length) yield return path[start..];
         }
 
-        public static byte[] ConstructUtocFile(this List<AssetMetadata> files, string compression, FAesKey AESKey, EGame gameVer)
+        public static byte[] ConstructUtocFile(List<AssetMetadata> files, string compression, FAesKey aesKey, EGame gameVer)
         {
-            var udata = new UToc(new UTocHeader(), [], "", []);
+            bool isCompressed = !compression.Equals("none", StringComparison.OrdinalIgnoreCase);
+            bool isEncrypted = !string.Equals(aesKey.KeyString, Constants.DefaultAES, StringComparison.OrdinalIgnoreCase);
 
-            var newContainerFlags = (byte)EIoContainerFlags.IndexedContainerFlag;
-            var compressionMethods = new List<string> { "None" };
+            var containerFlags = EIoContainerFlags.IndexedContainerFlag;
+            if (isCompressed) containerFlags |= EIoContainerFlags.CompressedContainerFlag;
+            if (isEncrypted) containerFlags |= EIoContainerFlags.EncryptedContainerFlag;
 
-            if (!compression.Equals("none", StringComparison.CurrentCultureIgnoreCase))
-            {
-                compressionMethods.Add(compression);
-                newContainerFlags |= (byte)EIoContainerFlags.CompressedContainerFlag;
-            }
+            byte containerChunkType = gameVer >= EGame.GAME_UE5_0
+                ? (byte)EIoChunkType5.ContainerHeader
+                : (byte)EIoChunkType.ContainerHeader;
 
-            if (AESKey.KeyString != Constants.DefaultAES)
-            {
-                newContainerFlags |= (byte)EIoContainerFlags.EncryptedContainerFlag;
-            }
-
-            var compressedBlocksCount = 0;
-            var containerIndex = 0;
-
-            for (var i = 0; i < files.Count; i++)
+            int compressedBlocksCount = 0;
+            int containerIndex = 0;
+            for (int i = 0; i < files.Count; i++)
             {
                 compressedBlocksCount += files[i].CompressionBlocks.Count;
-                if ((gameVer < EGame.GAME_UE5_0 && files[i].ChunkID.Type == (byte)EIoChunkType.ContainerHeader) ||
-                    gameVer >= EGame.GAME_UE5_0 && files[i].ChunkID.Type == (byte)EIoChunkType5.ContainerHeader)
-                {
-                    containerIndex = i;
-                }
+                if (files[i].ChunkID.Type == containerChunkType) containerIndex = i;
             }
 
             var dirIndexBytes = DeparseDirectoryIndex(files);
+            uint compressionMethodCount = isCompressed ? 1u : 0u;
 
-            udata.HeaderTable = new UTocHeader
+            var header = new UTocHeader
             {
                 Magic = Constants.MagicUtoc,
                 Version = (byte)Constants.PackUtocVersion,
@@ -270,57 +261,37 @@ namespace UnrealReZen.Core
                 EntryCount = (uint)files.Count,
                 CompressedBlockEntryCount = (uint)compressedBlocksCount,
                 CompressedBlockEntrySize = 12,
-                CompressionMethodNameCount = (uint)(compressionMethods.Count - 1),
+                CompressionMethodNameCount = compressionMethodCount,
                 CompressionMethodNameLength = Constants.CompressionNameLength,
                 CompressionBlockSize = Constants.CompSize,
                 DirectoryIndexSize = (uint)dirIndexBytes.Length,
                 ContainerID = new FIoContainerID(files[containerIndex].ChunkID.ID),
-                ContainerFlags = (EIoContainerFlags)newContainerFlags,
+                ContainerFlags = containerFlags,
                 PartitionSize = ulong.MaxValue,
                 PartitionCount = 1
             };
 
             using var buf = new MemoryStream();
-            udata.HeaderTable.Write(buf);
+            header.Write(buf);
+            foreach (var file in files) file.ChunkID.Write(buf);
+            foreach (var file in files) file.OffLen.Write(buf);
             foreach (var file in files)
-            {
-                file.ChunkID.Write(buf);
-            }
-            foreach (var file in files)
-            {
-                file.OffLen.Write(buf);
-            }
-            foreach (var file in files)
-            {
                 foreach (var block in file.CompressionBlocks)
-                {
                     block.Write(buf);
-                }
-            }
 
-            foreach (var compMethod in compressionMethods)
+            if (isCompressed)
             {
-                if (compMethod.Equals("none", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    continue;
-                }
-
-                var capitalized = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(compMethod);
-                var bname = Encoding.ASCII.GetBytes(capitalized);
-                var paddedName = new byte[Constants.CompressionNameLength];
-                Array.Copy(bname, paddedName, bname.Length);
-                buf.Write(paddedName, 0, paddedName.Length);
+                var capitalized = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(compression);
+                var nameBytes = Encoding.ASCII.GetBytes(capitalized);
+                var padded = new byte[Constants.CompressionNameLength];
+                Array.Copy(nameBytes, padded, nameBytes.Length);
+                buf.Write(padded, 0, padded.Length);
             }
 
             buf.Write(dirIndexBytes, 0, dirIndexBytes.Length);
-
-            foreach (var file in files)
-            {
-                file.Metadata.Write(buf);
-            }
+            foreach (var file in files) file.Metadata.Write(buf);
 
             return buf.ToArray();
         }
-
     }
 }

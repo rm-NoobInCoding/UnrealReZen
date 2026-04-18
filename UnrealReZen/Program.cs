@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using CommandLine.Text;
 using CUE4Parse.Compression;
 using CUE4Parse.Encryption.Aes;
@@ -14,7 +14,7 @@ using UnrealReZen.Core.Helpers;
 
 namespace UnrealReZen
 {
-    class Options
+    internal class Options
     {
         [Option('g', "game-dir", Required = true, HelpText = "Path to the game directory (for loading UCAS and UTOC files).")]
         public required string GameDirectory { get; set; }
@@ -32,10 +32,10 @@ namespace UnrealReZen
         public string? AESKey { get; set; }
 
         [Option("compression-format", Required = false, Default = "Zlib", HelpText = "Compression format (None, Zlib, Oodle, LZ4).")]
-        public string CompressionFormat { get; set; }
+        public string CompressionFormat { get; set; } = "Zlib";
 
         [Option("mount-point", Required = false, Default = "../../../", HelpText = "Mount point of packed archive")]
-        public string MountPoint { get; set; }
+        public string MountPoint { get; set; } = "../../../";
 
         [Option("container-id", Required = false, HelpText = "Container Id of packed archive (default is a random 8-byte number)")]
         public ulong? ContainerId { get; set; }
@@ -44,136 +44,183 @@ namespace UnrealReZen
         public bool GameDirTopOnly { get; set; }
 
         [Usage(ApplicationAlias = "UnrealReZen.exe")]
-        public static IEnumerable<Example> Examples
-        {
-            get
+        public static IEnumerable<Example> Examples => [
+            new("Making a patch for a ue5 game", new Options
             {
-                return [
-                     new("Making a patch for a ue5 game", new Options { GameDirectory = "C:/Games/MyGame",ContentPath = "C:/Games/MyGame/ExportedFiles", EngineVersion = "GAME_UE5_1", CompressionFormat = "Zlib", OutputPath = "C:/Games/MyGame/TestPatch_P.utoc"})
-                ];
-            }
-        }
-
+                GameDirectory = "C:/Games/MyGame",
+                ContentPath = "C:/Games/MyGame/ExportedFiles",
+                EngineVersion = "GAME_UE5_1",
+                CompressionFormat = "Zlib",
+                OutputPath = "C:/Games/MyGame/TestPatch_P.utoc"
+            })
+        ];
     }
-    internal class Program
+
+    internal static class Program
     {
-        static void Main(string[] args)
+        private const int ExitOk = 0;
+        private const int ExitError = 1;
+
+        static int Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .WriteTo.Console()
-            .CreateLogger();
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .CreateLogger();
 
+            int exitCode = ExitError;
             Parser.Default.ParseArguments<Options>(args)
-                .WithParsed(RunOptionsAndReturnExitCode);
+                .WithParsed(opts => exitCode = Run(opts));
+            return exitCode;
         }
 
-        static void RunOptionsAndReturnExitCode(Options opts)
+        private static int Run(Options opts)
         {
             Constants.ToolDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string? oodlePath = Path.Combine(Constants.ToolDirectory, OodleHelper.OodleFileName);
-            if (!OodleHelper.DownloadOodleDll(ref oodlePath))
-            {
-                Log.Fatal($"UnrealReZen failed to download the oodle dll. please check you internet connection or place {OodleHelper.OodleFileName} in the tool directory");
-                Console.ReadLine();
-                return;
-            }
-            if (!ZlibHelper.DownloadDll(Path.Combine(Constants.ToolDirectory, ZlibHelper.DLL_NAME)))
-            {
-                Log.Fatal("UnrealReZen failed to download the zlib dll. please check you internet connection or place zlib-ng2.dll in the tool directory");
-                Console.ReadLine();
-                return;
-            }
-            if (!Enum.TryParse(typeof(EGame), opts.EngineVersion, out var engineVersion))
-            {
-                Log.Fatal("Invalid Unreal Engine version. Please enter a valid version (e.g., GAME_UE4_0).");
-                Log.Information("List of supported engine versions: " + string.Join("\n", Enum.GetNames(typeof(EGame))));
-                return;
-            }
-            if (!Constants.CompressionTypes.Contains(opts.CompressionFormat.ToLower()))
-            {
-                Log.Fatal($"Unsupported compression format : {opts.CompressionFormat}");
-                return;
-            }
-            if (Path.GetExtension(opts.OutputPath) != ".utoc")
-            {
-                Log.Fatal($"Output path must contains utoc extension");
-                return;
-            }
 
-            Console.WriteLine($"Game Directory: {opts.GameDirectory}");
-            Console.WriteLine($"Content Path: {opts.ContentPath}");
-            Console.WriteLine($"Unreal Engine Version: {engineVersion}");
-            Console.WriteLine($"Output Path: {opts.OutputPath}");
+            if (!EnsureNativeDlls()) return ExitError;
+            if (!TryParseEngineVersion(opts.EngineVersion, out var engineVersion)) return ExitError;
+            if (!ValidateCliOptions(opts)) return ExitError;
+
+            LogOptionsSummary(opts, engineVersion);
 
             var aesKey = new FAesKey(opts.AESKey ?? Constants.DefaultAES);
-            DefaultFileProvider provider;
-
-            Log.Information("Loading Game Archives...");
-            try
-            {
-                var searchOption = opts.GameDirTopOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
-                provider = new DefaultFileProvider(opts.GameDirectory, searchOption, true, new VersionContainer((EGame)engineVersion));
-                provider.Initialize();
-                provider.SubmitKey(new FGuid(), aesKey);
-                provider.LoadLocalization(ELanguage.English);
-
-                if (provider.RequiredKeys.Count > 0 && provider.Keys.Count == 0)
-                {
-                    Log.Fatal("Some of archives needs AES Key. Please enter aes key");
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Fatal("Error:" + ex.ToString());
-                Log.Information("Maybe changing aes key or engine version helps");
-                return;
-            }
+            if (!TryLoadProvider(opts, engineVersion, aesKey, out var provider)) return ExitError;
 
             foreach (var vfs in provider.MountedVfs)
             {
                 vfs.Dispose();
             }
 
-            Log.Information("Packing Contents...");
-            Dependency m = new() { Deps = new DependenciesData { ChunkIDToDependencies = [] }, Files = [] };
-            List<string> FilesToRepack = new(Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories));
-            var newContainerID = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
-
-            byte type = (EGame)engineVersion >= EGame.GAME_UE5_0 ? (byte)EIoChunkType5.ContainerHeader : (byte)EIoChunkType.ContainerHeader;
-            m.Files.Add(new ManifestFile { ChunkID = new FIoChunkID(newContainerID, 0, 0, type), Filepath = Constants.DepFileName });
-            m.Deps.ThisPackageID = newContainerID;
-            if (FilesToRepack.Count == 0)
+            var filesToRepack = Directory.GetFiles(opts.ContentPath, "*", SearchOption.AllDirectories);
+            if (filesToRepack.Length == 0)
             {
                 Log.Fatal("No valid files found in the content path");
-                return;
-            }
-            var utocEntryLookup = new Dictionary<string, List<FIoStoreEntry>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var entry in provider.Files.Values.OfType<FIoStoreEntry>())
-            {
-                if (Path.GetExtension(((AbstractVfsReader)entry.Vfs).Name) != ".utoc") continue;
-                if (!utocEntryLookup.TryGetValue(entry.Path, out var list))
-                {
-                    list = new List<FIoStoreEntry>();
-                    utocEntryLookup[entry.Path] = list;
-                }
-                list.Add(entry);
+                return ExitError;
             }
 
-            foreach (var file in FilesToRepack)
+            Log.Information("Packing Contents...");
+            var manifest = BuildManifest(provider, opts, engineVersion, filesToRepack);
+
+            Log.Information("Packing files...");
+            Packer.PackToCasToc(opts.ContentPath, manifest, opts.OutputPath, opts.CompressionFormat, aesKey, opts.MountPoint, engineVersion);
+            Console.WriteLine($"Done! {filesToRepack.Length} file(s) packed");
+            return ExitOk;
+        }
+
+        private static bool EnsureNativeDlls()
+        {
+            string? oodlePath = Path.Combine(Constants.ToolDirectory, OodleHelper.OodleFileName);
+            if (!OodleHelper.DownloadOodleDll(ref oodlePath))
+            {
+                Log.Fatal($"UnrealReZen failed to download the oodle dll. please check your internet connection or place {OodleHelper.OodleFileName} in the tool directory");
+                return false;
+            }
+            if (!ZlibHelper.DownloadDll(Path.Combine(Constants.ToolDirectory, ZlibHelper.DLL_NAME)))
+            {
+                Log.Fatal($"UnrealReZen failed to download the zlib dll. please check your internet connection or place {ZlibHelper.DLL_NAME} in the tool directory");
+                return false;
+            }
+            return true;
+        }
+
+        private static bool TryParseEngineVersion(string raw, out EGame engineVersion)
+        {
+            if (Enum.TryParse(raw, out engineVersion) && Enum.IsDefined(engineVersion))
+            {
+                return true;
+            }
+            Log.Fatal("Invalid Unreal Engine version. Please enter a valid version (e.g., GAME_UE4_0).");
+            Log.Information("List of supported engine versions: " + string.Join("\n", Enum.GetNames<EGame>()));
+            return false;
+        }
+
+        private static bool ValidateCliOptions(Options opts)
+        {
+            if (!Constants.CompressionTypes.Contains(opts.CompressionFormat.ToLowerInvariant()))
+            {
+                Log.Fatal($"Unsupported compression format : {opts.CompressionFormat}");
+                return false;
+            }
+            if (!string.Equals(Path.GetExtension(opts.OutputPath), ".utoc", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Fatal("Output path must contain utoc extension");
+                return false;
+            }
+            return true;
+        }
+
+        private static void LogOptionsSummary(Options opts, EGame engineVersion)
+        {
+            Console.WriteLine($"Game Directory: {opts.GameDirectory}");
+            Console.WriteLine($"Content Path: {opts.ContentPath}");
+            Console.WriteLine($"Unreal Engine Version: {engineVersion}");
+            Console.WriteLine($"Output Path: {opts.OutputPath}");
+        }
+
+        private static bool TryLoadProvider(Options opts, EGame engineVersion, FAesKey aesKey, out DefaultFileProvider provider)
+        {
+            Log.Information("Loading Game Archives...");
+            try
+            {
+                var searchOption = opts.GameDirTopOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
+                provider = new DefaultFileProvider(opts.GameDirectory, searchOption, new VersionContainer(engineVersion), StringComparer.OrdinalIgnoreCase);
+                provider.Initialize();
+                provider.SubmitKey(new FGuid(), aesKey);
+                provider.LoadLocalization(ELanguage.English);
+
+                if (provider.RequiredKeys.Count > 0 && provider.Keys.Count == 0)
+                {
+                    Log.Fatal("Some archives require an AES key. Please provide --aes-key.");
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal("Error: " + ex);
+                Log.Information("Maybe changing aes key or engine version helps");
+                provider = null!;
+                return false;
+            }
+        }
+
+        private static Dependency BuildManifest(DefaultFileProvider provider, Options opts, EGame engineVersion, string[] filesToRepack)
+        {
+            var newContainerId = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
+            byte containerChunkType = engineVersion >= EGame.GAME_UE5_0
+                ? (byte)EIoChunkType5.ContainerHeader
+                : (byte)EIoChunkType.ContainerHeader;
+
+            var manifest = new Dependency
+            {
+                Deps = new DependenciesData
+                {
+                    ThisPackageID = newContainerId,
+                    ChunkIDToDependencies = []
+                },
+                Files = [new ManifestFile
+                {
+                    ChunkID = new FIoChunkID(newContainerId, 0, 0, containerChunkType),
+                    Filepath = Constants.DepFileName
+                }]
+            };
+
+            var utocEntryLookup = BuildUtocEntryLookup(provider);
+
+            foreach (var file in filesToRepack)
             {
                 string filename = Path.GetRelativePath(opts.ContentPath, file).Replace('\\', '/');
                 Log.Information("Mounting " + Path.GetFileName(filename));
                 if (!utocEntryLookup.TryGetValue(filename, out var matches))
                 {
-                    Log.Warning("Skipping " + filename + " because its not found in archives.");
+                    Log.Warning("Skipping " + filename + " because it's not found in archives.");
                     continue;
                 }
                 foreach (var entry in matches)
                 {
-                    FIoChunkId chunkId = entry.ChunkId;
-                    m.Files.Add(new ManifestFile
+                    var chunkId = entry.ChunkId;
+                    manifest.Files.Add(new ManifestFile
                     {
                         Filepath = entry.Path,
                         ChunkID = new FIoChunkID(chunkId.ChunkId, 0, 0, chunkId.ChunkType)
@@ -184,19 +231,28 @@ namespace UnrealReZen
                     {
                         foreach (var storeEntry in header.StoreEntries)
                         {
-                            if (!m.Deps.ChunkIDToDependencies.ContainsKey(chunkId.ChunkId))
-                            {
-                                m.Deps.ChunkIDToDependencies.Add(chunkId.ChunkId, storeEntry);
-                            }
+                            manifest.Deps.ChunkIDToDependencies.TryAdd(chunkId.ChunkId, storeEntry);
                         }
                     }
                 }
             }
-            Log.Information("Packing files...");
-            Packer.PackToCasToc(opts.ContentPath, m, opts.OutputPath, opts.CompressionFormat, aesKey, opts.MountPoint, (EGame)engineVersion);
-            Console.WriteLine($"Done! {FilesToRepack.Count} file(s) packed");
+            return manifest;
+        }
 
+        private static Dictionary<string, List<FIoStoreEntry>> BuildUtocEntryLookup(DefaultFileProvider provider)
+        {
+            var lookup = new Dictionary<string, List<FIoStoreEntry>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in provider.Files.Values.OfType<FIoStoreEntry>())
+            {
+                if (Path.GetExtension(((AbstractVfsReader)entry.Vfs).Name) != ".utoc") continue;
+                if (!lookup.TryGetValue(entry.Path, out var list))
+                {
+                    list = new List<FIoStoreEntry>();
+                    lookup[entry.Path] = list;
+                }
+                list.Add(entry);
+            }
+            return lookup;
         }
     }
-
 }
