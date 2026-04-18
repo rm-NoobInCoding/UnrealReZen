@@ -174,6 +174,18 @@ namespace UnrealReZen.Core
             br.Write(Padding);
             br.Write(Type);
         }
+
+        public ulong HashWithSeed(int seed)
+        {
+            const ulong prime = 0x00000100000001B3;
+            ulong hash = seed != 0 ? unchecked((ulong)seed) : 0xcbf29ce484222325;
+            for (int i = 0; i < 8; i++) hash = unchecked(hash * prime) ^ (byte)(ID >> (i * 8));
+            hash = unchecked(hash * prime) ^ (byte)(Index & 0xFF);
+            hash = unchecked(hash * prime) ^ (byte)((Index >> 8) & 0xFF);
+            hash = unchecked(hash * prime) ^ Padding;
+            hash = unchecked(hash * prime) ^ Type;
+            return hash;
+        }
         public string ToHexString()
         {
             return $"{ID:X16}{Index:X4}{Padding:X2}{Type:X2}";

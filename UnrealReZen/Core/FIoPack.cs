@@ -232,6 +232,7 @@ namespace UnrealReZen.Core
         public static byte[] ConstructUtocFile(List<AssetMetadata> files, string compression, bool isEncrypted, EGame gameVer)
         {
             bool isCompressed = !compression.Equals("none", StringComparison.OrdinalIgnoreCase);
+            int n = files.Count;
 
             var containerFlags = EIoContainerFlags.IndexedContainerFlag;
             if (isCompressed) containerFlags |= EIoContainerFlags.CompressedContainerFlag;
@@ -243,13 +244,15 @@ namespace UnrealReZen.Core
 
             int compressedBlocksCount = 0;
             int containerIndex = 0;
-            for (int i = 0; i < files.Count; i++)
+            for (int i = 0; i < n; i++)
             {
                 compressedBlocksCount += files[i].CompressionBlocks.Count;
                 if (files[i].ChunkID.Type == containerChunkType) containerIndex = i;
             }
 
-            var dirIndexBytes = DeparseDirectoryIndex(files);
+            var (seeds, overflowSlots, slotOrder) = BuildPerfectHash(files);
+
+            var dirIndexBytes = DeparseDirectoryIndex(slotOrder);
             uint compressionMethodCount = isCompressed ? 1u : 0u;
 
             var header = new UTocHeader
@@ -257,7 +260,7 @@ namespace UnrealReZen.Core
                 Magic = Constants.MagicUtoc,
                 Version = (byte)Constants.PackUtocVersion,
                 HeaderSize = (uint)UTocHeader.SizeOf,
-                EntryCount = (uint)files.Count,
+                EntryCount = (uint)n,
                 CompressedBlockEntryCount = (uint)compressedBlocksCount,
                 CompressedBlockEntrySize = 12,
                 CompressionMethodNameCount = compressionMethodCount,
@@ -267,13 +270,17 @@ namespace UnrealReZen.Core
                 ContainerID = new FIoContainerID(files[containerIndex].ChunkID.ID),
                 ContainerFlags = containerFlags,
                 PartitionSize = ulong.MaxValue,
-                PartitionCount = 1
+                PartitionCount = 1,
+                TocChunkPerfectHashSeedsCount = (uint)seeds.Length,
+                TocChunksWithoutPerfectHashCount = (uint)overflowSlots.Length,
             };
 
             using var buf = new MemoryStream();
             header.Write(buf);
-            foreach (var file in files) file.ChunkID.Write(buf);
-            foreach (var file in files) file.OffLen.Write(buf);
+            foreach (var file in slotOrder) file.ChunkID.Write(buf);
+            foreach (var file in slotOrder) file.OffLen.Write(buf);
+            foreach (var seed in seeds) buf.Write(seed);
+            foreach (var slot in overflowSlots) buf.Write(slot);
             foreach (var file in files)
                 foreach (var block in file.CompressionBlocks)
                     block.Write(buf);
@@ -288,9 +295,96 @@ namespace UnrealReZen.Core
             }
 
             buf.Write(dirIndexBytes, 0, dirIndexBytes.Length);
-            foreach (var file in files) file.Metadata.Write(buf);
+            foreach (var file in slotOrder) file.Metadata.Write(buf);
 
             return buf.ToArray();
+        }
+
+        private static (int[] seeds, int[] overflowSlots, List<AssetMetadata> slotOrder) BuildPerfectHash(List<AssetMetadata> files)
+        {
+            int n = files.Count;
+            int seedCount = Math.Max(n, 1);
+
+            var buckets = new List<int>[seedCount];
+            for (int i = 0; i < seedCount; i++) buckets[i] = [];
+            for (int i = 0; i < n; i++)
+            {
+                uint bucketIdx = (uint)(files[i].ChunkID.HashWithSeed(0) % (ulong)seedCount);
+                buckets[bucketIdx].Add(i);
+            }
+
+            var bucketOrder = Enumerable.Range(0, seedCount)
+                .OrderByDescending(b => buckets[b].Count)
+                .ToArray();
+
+            int[] seeds = new int[seedCount];
+            int[] slotToPack = new int[n];
+            Array.Fill(slotToPack, -1);
+            int overflowSentinel = unchecked(-(n + 1));
+            var overflowPack = new List<int>();
+
+            foreach (int b in bucketOrder)
+            {
+                var bucket = buckets[b];
+                if (bucket.Count == 0) { seeds[b] = 0; continue; }
+
+                if (bucket.Count == 1)
+                {
+                    for (int s = 0; s < n; s++)
+                    {
+                        if (slotToPack[s] == -1)
+                        {
+                            slotToPack[s] = bucket[0];
+                            seeds[b] = -(s + 1);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                bool placed = false;
+                var tentative = new uint[bucket.Count];
+                for (int seed = 1; seed < 1_000_000; seed++)
+                {
+                    var seen = new HashSet<uint>(bucket.Count);
+                    bool ok = true;
+                    for (int i = 0; i < bucket.Count; i++)
+                    {
+                        uint slot = (uint)(files[bucket[i]].ChunkID.HashWithSeed(seed) % (ulong)n);
+                        if (slotToPack[slot] != -1 || !seen.Add(slot)) { ok = false; break; }
+                        tentative[i] = slot;
+                    }
+                    if (ok)
+                    {
+                        for (int i = 0; i < bucket.Count; i++)
+                            slotToPack[tentative[i]] = bucket[i];
+                        seeds[b] = seed;
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed)
+                {
+                    seeds[b] = overflowSentinel;
+                    overflowPack.AddRange(bucket);
+                }
+            }
+
+            var overflowSlots = new List<int>(overflowPack.Count);
+            int oi = 0;
+            for (int s = 0; s < n; s++)
+            {
+                if (slotToPack[s] == -1)
+                {
+                    slotToPack[s] = overflowPack[oi++];
+                    overflowSlots.Add(s);
+                }
+            }
+
+            var slotOrder = new List<AssetMetadata>(n);
+            for (int s = 0; s < n; s++) slotOrder.Add(files[slotToPack[s]]);
+
+            return (seeds, overflowSlots.ToArray(), slotOrder);
         }
     }
 }
