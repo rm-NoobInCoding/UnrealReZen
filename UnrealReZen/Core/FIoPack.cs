@@ -12,7 +12,7 @@ namespace UnrealReZen.Core
 {
     public static class Packer
     {
-        public static int PackToCasToc(string dir, Dependency m, string outFilename, string compression, FAesKey aes, string mountPoint, EGame gameVer)
+        public static int PackToCasToc(string dir, Dependency m, string outFilename, string compression, FAesKey? outputAes, string mountPoint, EGame gameVer)
         {
             FIoDependencyFormat depver = gameVer >= EGame.GAME_UE5_0 ? FIoDependencyFormat.UE5 : FIoDependencyFormat.UE4;
 
@@ -47,12 +47,12 @@ namespace UnrealReZen.Core
 
             PackFilesToUcas(fdata, m, dir, outFilename, compression, depver);
 
-            if (!string.Equals(aes.KeyString, Constants.DefaultAES, StringComparison.OrdinalIgnoreCase))
+            if (outputAes is not null)
             {
-                EncryptUcasInPlace(Path.ChangeExtension(outFilename, ".ucas"), aes.Key);
+                EncryptUcasInPlace(Path.ChangeExtension(outFilename, ".ucas"), outputAes.Key);
             }
 
-            var utocBytes = ConstructUtocFile(fdata, compression, aes, gameVer);
+            var utocBytes = ConstructUtocFile(fdata, compression, outputAes is not null, gameVer);
             File.WriteAllBytes(outFilename, utocBytes);
             File.WriteAllBytes(Path.ChangeExtension(outFilename, ".pak"), PakHolder.Packed_P);
             return fdata.Count;
@@ -229,10 +229,9 @@ namespace UnrealReZen.Core
             if (start < path.Length) yield return path[start..];
         }
 
-        public static byte[] ConstructUtocFile(List<AssetMetadata> files, string compression, FAesKey aesKey, EGame gameVer)
+        public static byte[] ConstructUtocFile(List<AssetMetadata> files, string compression, bool isEncrypted, EGame gameVer)
         {
             bool isCompressed = !compression.Equals("none", StringComparison.OrdinalIgnoreCase);
-            bool isEncrypted = !string.Equals(aesKey.KeyString, Constants.DefaultAES, StringComparison.OrdinalIgnoreCase);
 
             var containerFlags = EIoContainerFlags.IndexedContainerFlag;
             if (isCompressed) containerFlags |= EIoContainerFlags.CompressedContainerFlag;

@@ -28,8 +28,11 @@ namespace UnrealReZen
         [Option('o', "output-path", Required = true, HelpText = "Path (including file name) for the packed utoc file.")]
         public required string OutputPath { get; set; }
 
-        [Option('a', "aes-key", Required = false, HelpText = "AES key of the game (only if its encrypted)")]
+        [Option('a', "aes-key", Required = false, HelpText = "AES key for reading the game's encrypted source archives. Not used to encrypt the output unless --encrypt-output is also set.")]
         public string? AESKey { get; set; }
+
+        [Option("encrypt-output", Required = false, Default = false, HelpText = "Encrypt the generated .ucas with the game's AES key and set the EncryptedContainerFlag in the .utoc. Most games accept plain archives for mods; leave off unless you know the target refuses unencrypted containers.")]
+        public bool EncryptOutput { get; set; }
 
         [Option("compression-format", Required = false, Default = "Zlib", HelpText = "Compression format (None, Zlib, Oodle, LZ4).")]
         public string CompressionFormat { get; set; } = "Zlib";
@@ -103,7 +106,8 @@ namespace UnrealReZen
             var manifest = BuildManifest(provider, opts, engineVersion, filesToRepack);
 
             Log.Information("Packing files...");
-            Packer.PackToCasToc(opts.ContentPath, manifest, opts.OutputPath, opts.CompressionFormat, aesKey, opts.MountPoint, engineVersion);
+            var outputAesKey = opts.EncryptOutput ? aesKey : null;
+            Packer.PackToCasToc(opts.ContentPath, manifest, opts.OutputPath, opts.CompressionFormat, outputAesKey, opts.MountPoint, engineVersion);
             Console.WriteLine($"Done! {filesToRepack.Length} file(s) packed");
             return ExitOk;
         }
