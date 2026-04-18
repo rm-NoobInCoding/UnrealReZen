@@ -149,16 +149,23 @@ namespace UnrealReZen
                 Log.Fatal("No valid files found in the content path");
                 return;
             }
+            var utocEntryLookup = new Dictionary<string, List<FIoStoreEntry>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in provider.Files.Values.OfType<FIoStoreEntry>())
+            {
+                if (Path.GetExtension(((AbstractVfsReader)entry.Vfs).Name) != ".utoc") continue;
+                if (!utocEntryLookup.TryGetValue(entry.Path, out var list))
+                {
+                    list = new List<FIoStoreEntry>();
+                    utocEntryLookup[entry.Path] = list;
+                }
+                list.Add(entry);
+            }
+
             foreach (var file in FilesToRepack)
             {
                 string filename = Path.GetRelativePath(opts.ContentPath, file).Replace('\\', '/');
                 Log.Information("Mounting " + Path.GetFileName(filename));
-                var matches = provider.Files.Values
-                    .OfType<FIoStoreEntry>()
-                    .Where(a => Path.GetExtension(((AbstractVfsReader)a.Vfs).Name) == ".utoc"
-                                && a.Path.Equals(filename, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                if (matches.Count == 0)
+                if (!utocEntryLookup.TryGetValue(filename, out var matches))
                 {
                     Log.Warning("Skipping " + filename + " because its not found in archives.");
                     continue;

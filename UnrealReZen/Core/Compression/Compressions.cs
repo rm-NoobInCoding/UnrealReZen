@@ -4,9 +4,8 @@ using ZlibngDotNet;
 
 namespace UnrealReZen.Core.Compression
 {
-    public class CompressionUtils
+    public static class CompressionUtils
     {
-
         public static readonly Dictionary<string, Func<byte[], byte[]>> CompressionMethods = new(StringComparer.OrdinalIgnoreCase)
         {
             { "None", CompressNone },
@@ -15,64 +14,53 @@ namespace UnrealReZen.Core.Compression
             { "Lz4", CompressLZ4 }
         };
 
-        public static byte[]? Compress(string method, byte[] inputData)
-        {
-            if (CompressionMethods.TryGetValue(method, out var compressionFunction))
-            {
-                return compressionFunction(inputData);
-            }
-            return null;
-        }
-
         public static Func<byte[], byte[]>? GetCompressionFunction(string method)
-        {
-            if (CompressionMethods.TryGetValue(method, out var compressionFunction))
-            {
-                return compressionFunction;
-            }
-            return null;
-        }
+            => CompressionMethods.TryGetValue(method, out var fn) ? fn : null;
 
-        private static byte[] CompressNone(byte[] inData)
-        {
-            return inData;
-        }
+        private static readonly Lazy<Zlibng> _zlib = new(() =>
+            new Zlibng(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.ZlibHelper.DllName)),
+            isThreadSafe: true);
+
+        private static readonly Lazy<Oodle> _oodle = new(() =>
+            new Oodle(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.OodleHelper.OodleFileName)),
+            isThreadSafe: true);
+
+        private static byte[] CompressNone(byte[] inData) => inData;
 
         private static byte[] CompressZlib(byte[] inData)
         {
-            using var _zlib = new Zlibng(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.ZlibHelper.DLL_NAME));
-            var compressedBufferSize = (int)_zlib.CompressBound(inData.Length);
-            var compressedBuffer = new byte[compressedBufferSize];
-            var compressionResult = _zlib.Compress(compressedBuffer, inData, out int compressedSize);
-            if (compressionResult.CompareTo(ZlibngCompressionResult.Ok) != 0)
+            var zlib = _zlib.Value;
+            var bufferSize = (int)zlib.CompressBound(inData.Length);
+            var buffer = new byte[bufferSize];
+            var result = zlib.Compress(buffer, inData, out int compressedSize);
+            if (result != ZlibngCompressionResult.Ok)
             {
-                throw new Exception($"Zlib compression failed with error code {compressionResult}");
+                throw new InvalidOperationException($"Zlib compression failed with error code {result}");
             }
-            return compressedBuffer.AsSpan(0, compressedSize).ToArray();
-
+            Array.Resize(ref buffer, compressedSize);
+            return buffer;
         }
 
         private static byte[] CompressOodle(byte[] inData)
         {
             const OodleCompressor compressor = OodleCompressor.Kraken;
-            using var _oodle = new Oodle(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.OodleHelper.OodleFileName));
-            var compressedBufferSize = (int)_oodle.GetCompressedBufferSizeNeeded(compressor, inData.Length);
-            var compressedBuffer = new byte[compressedBufferSize];
-            var compressedSize = (int)_oodle.Compress(compressor, OodleCompressionLevel.Max, inData, compressedBuffer);
-            return [.. compressedBuffer.Take(compressedSize)];
+            var oodle = _oodle.Value;
+            var bufferSize = (int)oodle.GetCompressedBufferSizeNeeded(compressor, inData.Length);
+            var buffer = new byte[bufferSize];
+            var compressedSize = (int)oodle.Compress(compressor, OodleCompressionLevel.Max, inData, buffer);
+            Array.Resize(ref buffer, compressedSize);
+            return buffer;
         }
 
         private static byte[] CompressLZ4(byte[] inData)
         {
-            using (var inputStream = new MemoryStream(inData))
-            using (var outputStream = new MemoryStream())
+            using var inputStream = new MemoryStream(inData);
+            using var outputStream = new MemoryStream(inData.Length);
             using (var lz4Stream = LZ4Stream.Encode(outputStream))
             {
                 inputStream.CopyTo(lz4Stream);
-                lz4Stream.Flush();
-                return outputStream.ToArray();
             }
-
+            return outputStream.ToArray();
         }
     }
 }

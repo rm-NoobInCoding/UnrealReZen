@@ -81,6 +81,7 @@ namespace UnrealReZen.Core
             var compFun = CompressionUtils.GetCompressionFunction(compression) ?? throw new Exception("Could not find " + compression + " method. Please use None, Oodle or Zlib");
             using var f = File.Open(Path.ChangeExtension(outFilename, ".ucas"), FileMode.Create);
             var readBuffer = new byte[Constants.CompSize];
+            Span<byte> padBuffer = stackalloc byte[16];
             for (int i = 0; i < files.Count; i++)
             {
                 WriteProgressBar(i + 1, files.Count);
@@ -103,15 +104,16 @@ namespace UnrealReZen.Core
                     files[i].OffLen.SetOffset(off);
                 }
 
-                files[i].Metadata.ChunkHash = new FIoChunkHash(source.ComputeSha1());
                 files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
+                using var sha1 = SHA1.Create();
                 long readPos = 0;
                 while (readPos < source.Length)
                 {
                     int chunkLen = (int)Math.Min(Constants.CompSize, source.Length - readPos);
                     source.ReadInto(readPos, readBuffer, 0, chunkLen);
                     readPos += chunkLen;
+                    sha1.TransformBlock(readBuffer, 0, chunkLen, readBuffer, 0);
 
                     byte[] compressedChunk = compFun(chunkLen == readBuffer.Length ? readBuffer : readBuffer[..chunkLen]);
 
@@ -128,11 +130,12 @@ namespace UnrealReZen.Core
                     int padLen = (0x10 - compressedChunk.Length % 0x10) & 0x0F;
                     if (padLen > 0)
                     {
-                        Span<byte> pad = stackalloc byte[16];
-                        RandomNumberGenerator.Fill(pad[..padLen]);
-                        f.Write(pad[..padLen]);
+                        RandomNumberGenerator.Fill(padBuffer[..padLen]);
+                        f.Write(padBuffer[..padLen]);
                     }
                 }
+                sha1.TransformFinalBlock(readBuffer, 0, 0);
+                files[i].Metadata.ChunkHash = new FIoChunkHash(sha1.Hash!);
             }
 
             Console.WriteLine("");
