@@ -235,10 +235,4 @@ namespace UnrealReZen.Core
         }
     }
 
-    public static class ManifestData
-    {
-        public const int UE5_DepFile_Sig = 1232028526;
-        
-    }
-
 }
