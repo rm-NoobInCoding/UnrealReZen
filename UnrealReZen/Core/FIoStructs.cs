@@ -92,8 +92,8 @@ namespace UnrealReZen.Core
             }
             else
             {
-                FIoDirectoryIndexEntry dentry = structure.Dirs[(int)FirstChildEntry];
-                FIoDirectoryIndexEntry lastDentry = null;
+                FIoDirectoryIndexEntry? dentry = structure.Dirs[(int)FirstChildEntry];
+                FIoDirectoryIndexEntry? lastDentry = null;
 
                 while (dentry != null && dentry.Name != currDirNameIndex)
                 {
@@ -200,10 +200,10 @@ namespace UnrealReZen.Core
 
     public class DirIndexWrapper
     {
-        public List<FIoDirectoryIndexEntry> Dirs { get; set; }
-        public List<FIoFileIndexEntry> Files { get; set; }
-        public Dictionary<string, int> StrTable { get; set; }
-        public string[] StrSlice { get; set; }
+        public List<FIoDirectoryIndexEntry> Dirs { get; }
+        public List<FIoFileIndexEntry> Files { get; }
+        public Dictionary<string, int> StrTable { get; }
+        public string[] StrSlice { get; }
 
         public DirIndexWrapper(List<FIoDirectoryIndexEntry> dirs, List<FIoFileIndexEntry> files, Dictionary<string, int> strTable, string[] strSlice)
         {
@@ -212,43 +212,33 @@ namespace UnrealReZen.Core
             StrTable = strTable;
             StrSlice = strSlice;
         }
+
         public byte[] ToBytes()
         {
-            MemoryStream output = new();
+            using var output = new MemoryStream();
 
-            uint dirCount = (uint)Dirs.Count;
-            uint fileCount = (uint)Files.Count;
-            uint strCount = (uint)StrSlice.Length;
+            output.Write(StringHelpers.StringToFString(Constants.MountPoint));
 
-            // Mount point string
-            byte[] mountPointStr = StringHelpers.StringToFString(Constants.MountPoint);
-            output.Write(mountPointStr);
-
-            // Directory index entries
-            output.Write(dirCount);
-            foreach (FIoDirectoryIndexEntry directoryEntry in Dirs)
+            output.Write((uint)Dirs.Count);
+            foreach (var directoryEntry in Dirs)
             {
                 directoryEntry.Write(output);
             }
 
-            // File index entries
-            output.Write(fileCount);
-            foreach (FIoFileIndexEntry fileEntry in Files)
+            output.Write((uint)Files.Count);
+            foreach (var fileEntry in Files)
             {
                 fileEntry.Write(output);
             }
 
-            // String table
-            output.Write(strCount);
-            foreach (string str in StrSlice)
+            output.Write((uint)StrSlice.Length);
+            foreach (var str in StrSlice)
             {
-                byte[] strBytes = StringHelpers.StringToFString(str);
-                output.Write(strBytes);
+                output.Write(StringHelpers.StringToFString(str));
             }
 
             return output.ToArray();
         }
-        public DirIndexWrapper() { }
     }
 
     public class FIoStoreTocCompressedBlockEntry

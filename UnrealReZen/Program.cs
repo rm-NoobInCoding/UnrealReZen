@@ -151,26 +151,36 @@ namespace UnrealReZen
             }
             foreach (var file in FilesToRepack)
             {
-                string filename = file.Replace(opts.ContentPath + "\\", "").Replace("\\", "/");
+                string filename = Path.GetRelativePath(opts.ContentPath, file).Replace('\\', '/');
                 Log.Information("Mounting " + Path.GetFileName(filename));
-                var filedata = provider.Files.Values.Where(a => Path.GetExtension(((AbstractVfsReader)((VfsEntry)a).Vfs).Name) == ".utoc" && a.Path.Equals(filename, StringComparison.CurrentCultureIgnoreCase));
-                if (filedata == null || !filedata.Any())
+                var matches = provider.Files.Values
+                    .OfType<FIoStoreEntry>()
+                    .Where(a => Path.GetExtension(((AbstractVfsReader)a.Vfs).Name) == ".utoc"
+                                && a.Path.Equals(filename, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (matches.Count == 0)
                 {
                     Log.Warning("Skipping " + filename + " because its not found in archives.");
                     continue;
                 }
-                foreach (var dep in filedata)
+                foreach (var entry in matches)
                 {
-                    dynamic b = dep;
-                    FIoChunkId c = b.ChunkId;
-                    m.Files.Add(new ManifestFile { Filepath = dep.Path, ChunkID = new FIoChunkID(c.ChunkId, 0, 0, c.ChunkType) });
-                    IoStoreReader IoFile = b.IoStoreReader;
-                    if (IoFile.ContainerHeader != null)
+                    FIoChunkId chunkId = entry.ChunkId;
+                    m.Files.Add(new ManifestFile
                     {
-                        foreach (var st in IoFile.ContainerHeader.StoreEntries)
+                        Filepath = entry.Path,
+                        ChunkID = new FIoChunkID(chunkId.ChunkId, 0, 0, chunkId.ChunkType)
+                    });
+
+                    var header = entry.IoStoreReader.ContainerHeader;
+                    if (header != null)
+                    {
+                        foreach (var storeEntry in header.StoreEntries)
                         {
-                            if (m.Deps.ChunkIDToDependencies.ContainsKey(c.ChunkId)) continue;
-                            m.Deps.ChunkIDToDependencies.Add(c.ChunkId, st);
+                            if (!m.Deps.ChunkIDToDependencies.ContainsKey(chunkId.ChunkId))
+                            {
+                                m.Deps.ChunkIDToDependencies.Add(chunkId.ChunkId, storeEntry);
+                            }
                         }
                     }
                 }

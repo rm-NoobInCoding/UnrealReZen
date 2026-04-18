@@ -3,7 +3,7 @@ using CUE4Parse.UE4.IO.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
 using System.Globalization;
-using System.IO.MemoryMappedFiles;
+using System.Security.Cryptography;
 using System.Text;
 using UnrealReZen.Core.Compression;
 using UnrealReZen.Core.Helpers;
@@ -47,11 +47,9 @@ namespace UnrealReZen.Core
 
             fdata.PackFilesToUcas(m, dir, outFilename, compression, depver);
 
-            if (aes.KeyString != Constants.DefaultAES)
+            if (!string.Equals(aes.KeyString, Constants.DefaultAES, StringComparison.OrdinalIgnoreCase))
             {
-                var b = File.ReadAllBytes(Path.ChangeExtension(outFilename, ".ucas"));
-                var encrypted = CryptographyHelpers.EncryptAES(b, aes.Key);
-                File.WriteAllBytes(Path.ChangeExtension(outFilename, ".ucas"), encrypted);
+                EncryptUcasInPlace(Path.ChangeExtension(outFilename, ".ucas"), aes.Key);
             }
 
             var utocBytes = fdata.ConstructUtocFile(compression, aes, gameVer);
@@ -79,32 +77,20 @@ namespace UnrealReZen.Core
 
             m.Deps.ChunkIDToDependencies = subsetDependencies;
 
-            var compMethodNumber = !compression.Equals("none", StringComparison.CurrentCultureIgnoreCase) ? (byte)1 : (byte)0;
+            var compMethodNumber = !compression.Equals("none", StringComparison.OrdinalIgnoreCase) ? (byte)1 : (byte)0;
             var compFun = CompressionUtils.GetCompressionFunction(compression) ?? throw new Exception("Could not find " + compression + " method. Please use None, Oodle or Zlib");
             using var f = File.Open(Path.ChangeExtension(outFilename, ".ucas"), FileMode.Create);
+            var readBuffer = new byte[Constants.CompSize];
             for (int i = 0; i < files.Count; i++)
             {
-                WriteProgressBar(i, files.Count - 1);
+                WriteProgressBar(i + 1, files.Count);
 
-                MemoryMappedFile mmf;
-                long SizeOfmmf;
-                string pathToread = Path.Combine(dir.Replace("/", "\\"), files[i].FilePath.Replace("/", "\\"));
-                if (!File.Exists(pathToread))
-                {
-                    if (files[i].FilePath != Constants.DepFileName) throw new Exception("File doesn't exist, and also its not the dependency file.");
-                    byte[] ManifestCreatedFile = depver == FIoDependencyFormat.UE4 ? m.WriteDependenciesAsUE4() : m.WriteDependenciesAsUE5();
-                    mmf = MemoryMappedHelpers.CreateMemoryMappedFileFromByteArray(ManifestCreatedFile, files[i].FilePath);
-                    SizeOfmmf = ManifestCreatedFile.LongLength;
-                    files[i].FilePath = "";
-                }
-                else
-                {
-                    mmf = MemoryMappedFile.CreateFromFile(pathToread, FileMode.Open, Path.GetFileNameWithoutExtension(pathToread));
-                    SizeOfmmf = new FileInfo(pathToread).Length;
-                }
+                var pathToRead = Path.Combine(dir, files[i].FilePath);
+                using ChunkSource source = File.Exists(pathToRead)
+                    ? ChunkSource.FromFile(pathToRead)
+                    : CreateDependencyChunkSource(files[i], m, depver);
 
-
-                files[i].OffLen.SetLength((ulong)SizeOfmmf);
+                files[i].OffLen.SetLength((ulong)source.Length);
 
                 if (i == 0)
                 {
@@ -117,81 +103,92 @@ namespace UnrealReZen.Core
                     files[i].OffLen.SetOffset(off);
                 }
 
-                files[i].Metadata.ChunkHash = new FIoChunkHash(mmf.SHA1Hash());
+                files[i].Metadata.ChunkHash = new FIoChunkHash(source.ComputeSha1());
                 files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
-                long PosOfReaded = 0;
-                long RemainSize = SizeOfmmf;
-                while (PosOfReaded != SizeOfmmf)
+                long readPos = 0;
+                while (readPos < source.Length)
                 {
-                    var block = new FIoStoreTocCompressedBlockEntry();
-                    var chunkLen = RemainSize;
-                    if (chunkLen > Constants.CompSize)
-                    {
-                        chunkLen = Constants.CompSize;
-                    }
-                    RemainSize -= chunkLen;
-                    var chunk = mmf.ReadBytesOfFile(PosOfReaded, chunkLen);
-                    PosOfReaded += chunkLen;
-                    var cChunkPtr = compFun(chunk);
-                    var compressedChunk = cChunkPtr.ToArray();
+                    int chunkLen = (int)Math.Min(Constants.CompSize, source.Length - readPos);
+                    source.ReadInto(readPos, readBuffer, 0, chunkLen);
+                    readPos += chunkLen;
 
-                    block.CompressionMethod = compMethodNumber;
+                    byte[] compressedChunk = compFun(chunkLen == readBuffer.Length ? readBuffer : readBuffer[..chunkLen]);
+
+                    var block = new FIoStoreTocCompressedBlockEntry
+                    {
+                        CompressionMethod = compMethodNumber
+                    };
                     block.SetOffset((ulong)f.Position);
                     block.SetUncompressedSize((uint)chunkLen);
                     block.SetCompressedSize((uint)compressedChunk.Length);
-
-                    compressedChunk = [.. compressedChunk, .. CryptographyHelpers.GetRandomBytes(0x10 - compressedChunk.Length % 0x10 & 0x10 - 1)];
                     files[i].CompressionBlocks.Add(block);
 
                     f.Write(compressedChunk, 0, compressedChunk.Length);
+                    int padLen = (0x10 - compressedChunk.Length % 0x10) & 0x0F;
+                    if (padLen > 0)
+                    {
+                        Span<byte> pad = stackalloc byte[16];
+                        RandomNumberGenerator.Fill(pad[..padLen]);
+                        f.Write(pad[..padLen]);
+                    }
                 }
-                mmf.Dispose();
             }
 
-            // Add a line feed for the progress bar
             Console.WriteLine("");
         }
 
-        public static void WriteProgressBar(int count, int maxCount)
+        private static ChunkSource CreateDependencyChunkSource(AssetMetadata entry, Dependency m, FIoDependencyFormat depver)
         {
-            // Display a progress bar on the console.
-            // e.g. WriteProgressBar(54, 100)
-            //      [##########..........] 54/100
+            if (entry.FilePath != Constants.DepFileName)
+            {
+                throw new FileNotFoundException($"Content file not found: {entry.FilePath}");
+            }
+            byte[] depBytes = depver == FIoDependencyFormat.UE4 ? m.WriteDependenciesAsUE4() : m.WriteDependenciesAsUE5();
+            entry.FilePath = "";
+            return ChunkSource.FromBytes(depBytes);
+        }
+
+        private static void EncryptUcasInPlace(string path, byte[] aesKey)
+        {
+            string tempPath = path + ".enc.tmp";
+            using (var aes = System.Security.Cryptography.Aes.Create())
+            {
+                aes.Key = aesKey;
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.None;
+                using var input = File.Open(path, FileMode.Open, FileAccess.Read);
+                using var output = File.Open(tempPath, FileMode.Create, FileAccess.Write);
+                using var encryptor = aes.CreateEncryptor();
+                using var crypto = new CryptoStream(output, encryptor, CryptoStreamMode.Write);
+                input.CopyTo(crypto);
+            }
+            File.Move(tempPath, path, overwrite: true);
+        }
+
+        public static void WriteProgressBar(int count, int total)
+        {
             const int MaxProgress = 20;
-            var progress = count * MaxProgress / maxCount;
+            int denom = Math.Max(total, 1);
+            int progress = Math.Min(count * MaxProgress / denom, MaxProgress);
             string str = new string('#', progress) + new string('.', MaxProgress - progress);
-            Console.Write($"\r[{str}] {count}/{maxCount}");
+            Console.Write($"\r[{str}] {count}/{total}");
         }
 
         public static byte[] DeparseDirectoryIndex(List<AssetMetadata> files)
         {
-            var wrapper = new DirIndexWrapper();
-            var dirIndexEntries = new List<FIoDirectoryIndexEntry>();
-            var fileIndexEntries = new List<FIoFileIndexEntry>();
-
-            var strmap = new Dictionary<string, bool>();
-            foreach (var v in files)
-            {
-                var dirfiles = v.FilePath.Split('/');
-                if (dirfiles[0] == "")
-                {
-                    dirfiles = dirfiles.Skip(1).ToArray();
-                }
-
-                foreach (var str in dirfiles)
-                {
-                    strmap[str] = true;
-                }
-            }
-
-            var strSlice = strmap.Keys.ToList();
             var strIdx = new Dictionary<string, int>();
-            for (int iv = 0; iv < strSlice.Count; iv++)
+            var strSlice = new List<string>();
+            foreach (var file in files)
             {
-                strIdx.Add(strSlice[iv], iv);
+                foreach (var segment in SplitPath(file.FilePath))
+                {
+                    if (strIdx.TryAdd(segment, strSlice.Count))
+                    {
+                        strSlice.Add(segment);
+                    }
+                }
             }
-
 
             var root = new FIoDirectoryIndexEntry
             {
@@ -201,24 +198,32 @@ namespace UnrealReZen.Core
                 FirstFileEntry = Constants.NoneEntry,
             };
 
-            dirIndexEntries.Add(root);
-            wrapper.Dirs = dirIndexEntries;
-            wrapper.Files = fileIndexEntries;
-            wrapper.StrTable = strIdx;
-            wrapper.StrSlice = [.. strSlice];
+            var wrapper = new DirIndexWrapper(
+                new List<FIoDirectoryIndexEntry> { root },
+                new List<FIoFileIndexEntry>(files.Count),
+                strIdx,
+                strSlice.ToArray());
 
             for (var i = 0; i < files.Count; i++)
             {
-                var fpathSections = files[i].FilePath.Split('/');
-                if (fpathSections[0] == "")
-                {
-                    fpathSections = fpathSections.Skip(1).ToArray();
-                }
-
-                root.AddFile(fpathSections, (uint)i, wrapper);
+                root.AddFile(SplitPath(files[i].FilePath).ToArray(), (uint)i, wrapper);
             }
 
             return wrapper.ToBytes();
+        }
+
+        private static IEnumerable<string> SplitPath(string path)
+        {
+            int start = path.StartsWith('/') ? 1 : 0;
+            for (int i = start; i < path.Length; i++)
+            {
+                if (path[i] == '/')
+                {
+                    if (i > start) yield return path[start..i];
+                    start = i + 1;
+                }
+            }
+            if (start < path.Length) yield return path[start..];
         }
 
         public static byte[] ConstructUtocFile(this List<AssetMetadata> files, string compression, FAesKey AESKey, EGame gameVer)
