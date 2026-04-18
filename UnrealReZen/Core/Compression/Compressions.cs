@@ -55,7 +55,7 @@ namespace UnrealReZen.Core.Compression
         private static byte[] CompressOodle(byte[] inData)
         {
             const OodleCompressor compressor = OodleCompressor.Kraken;
-            using var _oodle = new Oodle(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.OodleHelper.OODLE_DLL_NAME));
+            using var _oodle = new Oodle(Path.Combine(Constants.ToolDirectory, CUE4Parse.Compression.OodleHelper.OodleFileName));
             var compressedBufferSize = (int)_oodle.GetCompressedBufferSizeNeeded(compressor, inData.Length);
             var compressedBuffer = new byte[compressedBufferSize];
             var compressedSize = (int)_oodle.Compress(compressor, OodleCompressionLevel.Max, inData, compressedBuffer);

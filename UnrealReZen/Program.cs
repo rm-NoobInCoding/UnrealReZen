@@ -71,9 +71,10 @@ namespace UnrealReZen
         static void RunOptionsAndReturnExitCode(Options opts)
         {
             Constants.ToolDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            if (!OodleHelper.DownloadOodleDll(Path.Combine(Constants.ToolDirectory, OodleHelper.OODLE_DLL_NAME)))
+            string? oodlePath = Path.Combine(Constants.ToolDirectory, OodleHelper.OodleFileName);
+            if (!OodleHelper.DownloadOodleDll(ref oodlePath))
             {
-                Log.Fatal("UnrealReZen failed to download the oodle dll. please check you internet connection or place oo2core_9_win64.dll in the tool directory");
+                Log.Fatal($"UnrealReZen failed to download the oodle dll. please check you internet connection or place {OodleHelper.OodleFileName} in the tool directory");
                 Console.ReadLine();
                 return;
             }
