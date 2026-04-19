@@ -189,7 +189,6 @@ namespace UnrealReZen
                 provider = new DefaultFileProvider(opts.GameDirectory, searchOption, new VersionContainer(engineVersion), StringComparer.OrdinalIgnoreCase);
                 provider.Initialize();
                 provider.SubmitKey(new FGuid(), aesKey);
-                provider.LoadLocalization(ELanguage.English);
 
                 if (provider.RequiredKeys.Count > 0 && provider.Keys.Count == 0)
                 {
