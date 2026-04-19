@@ -228,6 +228,7 @@ namespace UnrealReZen
             };
 
             var utocEntryLookup = BuildUtocEntryLookup(provider);
+            var seenChunks = new HashSet<(ulong id, byte type)> { (newContainerId, containerChunkType) };
 
             foreach (var file in filesToRepack)
             {
@@ -241,6 +242,8 @@ namespace UnrealReZen
                 foreach (var entry in matches)
                 {
                     var chunkId = entry.ChunkId;
+                    if (!seenChunks.Add((chunkId.ChunkId, chunkId.ChunkType))) continue;
+
                     manifest.Files.Add(new ManifestFile
                     {
                         Filepath = entry.Path,
