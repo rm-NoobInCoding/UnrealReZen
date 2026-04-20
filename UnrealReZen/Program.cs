@@ -40,7 +40,7 @@ namespace UnrealReZen
         [Option("mount-point", Required = false, Default = "../../../", HelpText = "Mount point of packed archive")]
         public string MountPoint { get; set; } = "../../../";
 
-        [Option("container-id", Required = false, HelpText = "Container Id of packed archive (default is a random 8-byte number)")]
+        [Option("container-id", Required = false, HelpText = "Container Id of packed archive (default: CityHash64 of the lowercased output file name, matching Unreal's FIoContainerId::FromName).")]
         public ulong? ContainerId { get; set; }
 
         [Option("game-dir-top-only", Required = false, Default = false, HelpText = "When enabled, restricts the game directory search to the top-level only.")]
@@ -208,7 +208,7 @@ namespace UnrealReZen
 
         private static Dependency BuildManifest(DefaultFileProvider provider, Options opts, EGame engineVersion, string[] filesToRepack)
         {
-            var newContainerId = opts.ContainerId ?? CryptographyHelpers.RandomUlong();
+            var newContainerId = opts.ContainerId ?? DeriveContainerIdFromName(opts.OutputPath);
             byte containerChunkType = engineVersion >= EGame.GAME_UE5_0
                 ? (byte)EIoChunkType5.ContainerHeader
                 : (byte)EIoChunkType.ContainerHeader;
@@ -261,6 +261,12 @@ namespace UnrealReZen
                 }
             }
             return manifest;
+        }
+
+        private static ulong DeriveContainerIdFromName(string outputPath)
+        {
+            var name = Path.GetFileNameWithoutExtension(outputPath);
+            return FPackageId.FromName(name).id;
         }
 
         private static Dictionary<string, List<FIoStoreEntry>> BuildUtocEntryLookup(DefaultFileProvider provider)
