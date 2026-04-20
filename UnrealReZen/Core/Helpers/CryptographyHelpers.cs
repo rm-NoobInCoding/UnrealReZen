@@ -22,14 +22,6 @@ namespace UnrealReZen.Core.Helpers
         {
             return SHA1.HashData(data);
         }
-        public static ulong RandomUlong()
-        {
-            Random rnd = new();
-            int rawsize = System.Runtime.InteropServices.Marshal.SizeOf(ulong.MaxValue);
-            var buffer = new byte[rawsize];
-            rnd.NextBytes(buffer);
-            return BitConverter.ToUInt64(buffer, 0);
-        }
         public static byte[] GetRandomBytes(int n)
         {
             byte[] ret = new byte[n];

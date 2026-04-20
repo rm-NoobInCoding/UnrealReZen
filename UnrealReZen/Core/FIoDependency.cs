@@ -93,64 +93,80 @@ namespace UnrealReZen.Core
         public byte[] WriteDependenciesAsUE5()
         {
             using var ms = new MemoryStream();
+            const EIoContainerHeaderVersion version = EIoContainerHeaderVersion.OptionalSegmentPackages;
 
-            var hdr = new DepsHeader_UE5
-            {
-                Signature = Constants.UE5_DepFile_Sig,
-                Version = EIoContainerHeaderVersion.OptionalSegmentPackages,
-                ContainerId = Deps.ThisPackageID,
-                PackageCount = Deps.ChunkIDToDependencies.Count
-            };
-            hdr.Write(ms);
+            ms.Write(Constants.UE5_DepFile_Sig);
+            ms.Write((int)version);
+            ms.Write(Deps.ThisPackageID);
 
             var ids = Deps.ChunkIDToDependencies.Keys.ToList();
-            var totalNumberOfDependencies = 0;
-            foreach (var k in Deps.ChunkIDToDependencies)
-            {
-                totalNumberOfDependencies += k.Value.ImportedPackages.Length;
-            }
-
             ids.Sort();
-            ids.Reverse();
 
-            foreach (var id in ids)
-            {
-                ms.Write(id);
-            }
+            ms.Write(ids.Count);
+            foreach (var id in ids) ms.Write(id);
 
-            MemoryStream storeEntries = new MemoryStream();
-            MemoryStream storeEntriesbuffer = new MemoryStream();
+            var storeEntriesBytes = BuildStoreEntriesSection(ids);
+            ms.Write(storeEntriesBytes.Length);
+            ms.Write(storeEntriesBytes);
 
-            var depsToWrite = new List<ulong>();
+            ms.Write(0);
+            ms.Write(0);
+
+            ms.Write(0);
+
+            ms.Write(0);
+
+            ms.Write(0);
+
+            return ms.ToArray();
+        }
+
+        private byte[] BuildStoreEntriesSection(List<ulong> ids)
+        {
+            const int HeaderSize = 24;
+            const int PackageIdSize = 8;
+            const int ShaderMapHashSize = 20;
+
+            var headersSize = ids.Count * HeaderSize;
+            using var headers = new MemoryStream();
+            using var blob = new MemoryStream();
+
             for (int i = 0; i < ids.Count; i++)
             {
-                var id = ids[i];
-                var entry = Deps.ChunkIDToDependencies[id];
+                var entry = Deps.ChunkIDToDependencies[ids[i]];
+                var entryStart = i * HeaderSize;
 
-                var link = new DepLinks_UE5
-                {
-                    ExportCount = entry.ExportCount,
-                    ExportBundleCount = entry.ExportBundleCount,
-                    ImportedPackages = entry.ImportedPackages.Select(a => a.id).ToList(),
-                    BaseOffset = storeEntriesbuffer.Length + (ids.Count * 24 - storeEntries.Position),
-                    ShaderMapHashes = entry.ShaderMapHashes.Select(a => a.Hash).ToList(),
-                };
-                foreach (var ImpPak in entry.ImportedPackages)
-                {
-                    storeEntriesbuffer.Write(ImpPak.id);
-                }
-                foreach (var ShMapHash in entry.ShaderMapHashes)
-                {
-                    storeEntriesbuffer.Write(ShMapHash.Hash);
-                }
-                link.Write(storeEntries);
+                headers.Write(entry.ExportCount);
+                headers.Write(entry.ExportBundleCount);
 
+                WriteCArrayView(headers, blob, entryStart + 8, headersSize, entry.ImportedPackages.Length,
+                    () => { foreach (var p in entry.ImportedPackages) blob.Write(p.id); },
+                    PackageIdSize);
+
+                WriteCArrayView(headers, blob, entryStart + 16, headersSize, entry.ShaderMapHashes.Length,
+                    () => { foreach (var h in entry.ShaderMapHashes) blob.Write(h.Hash); },
+                    ShaderMapHashSize);
             }
-            ms.Write((int)storeEntries.Length + (int)storeEntriesbuffer.Length);
-            ms.Write(storeEntries.ToArray());
-            ms.Write(storeEntriesbuffer.ToArray());
-            ms.Write(new byte[20]);
-            return ms.ToArray();
+
+            var result = new byte[headers.Length + blob.Length];
+            Buffer.BlockCopy(headers.ToArray(), 0, result, 0, (int)headers.Length);
+            Buffer.BlockCopy(blob.ToArray(), 0, result, (int)headers.Length, (int)blob.Length);
+            return result;
+        }
+
+        private static void WriteCArrayView(MemoryStream headers, MemoryStream blob, int initialPos, int headersSize, int count, Action writeItems, int _)
+        {
+            if (count == 0)
+            {
+                headers.Write(0);
+                headers.Write(0);
+                return;
+            }
+            var dataPos = headersSize + (int)blob.Length;
+            var offsetFromThis = dataPos - initialPos;
+            headers.Write(count);
+            headers.Write(offsetFromThis);
+            writeItems();
         }
     }
 
@@ -198,40 +214,6 @@ namespace UnrealReZen.Core
             br.Write(SomeIndex);
             br.Write(DependencyPackages);
             br.Write(Offset);
-        }
-    }
-
-    public class DepsHeader_UE5
-    {
-        public int Signature { get; set; }
-        public EIoContainerHeaderVersion Version { get; set; }
-        public ulong ContainerId { get; set; }
-        public int PackageCount { get; set; }
-
-        public void Write(MemoryStream ms)
-        {
-            ms.Write(Signature);
-            if ((int)Version > -1) ms.Write((int)Version);
-            ms.Write(ContainerId);
-            if ((int)Version >= 2) ms.Write(PackageCount);
-        }
-    }
-
-    public class DepLinks_UE5
-    {
-        public int ExportCount { get; set; }
-        public int ExportBundleCount { get; set; }
-        public required List<ulong> ImportedPackages { get; set; }
-        public required List<byte[]> ShaderMapHashes { get; set; }
-        public long BaseOffset { get; set; }
-        public void Write(MemoryStream br)
-        {
-            br.Write(ExportCount);
-            br.Write(ExportBundleCount);
-            br.Write(ImportedPackages.Count);
-            if (ImportedPackages.Count > 0) br.Write(BaseOffset - 4); else br.Write(0);
-            br.Write(ShaderMapHashes.Count);
-            if (ShaderMapHashes.Count > 0) br.Write(BaseOffset + ImportedPackages.Count * 8); else br.Write(0);
         }
     }
 

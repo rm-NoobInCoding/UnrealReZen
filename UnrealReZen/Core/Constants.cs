@@ -13,7 +13,7 @@ namespace UnrealReZen.Core
         public const uint NoneEntry = 0xFFFFFFFF;
         public const int UE5_DepFile_Sig = 1232028526;
         public const int CompSize = 0x10000;
-        public const int PackUtocVersion = 3;
+        public const int PackUtocVersion = 5;
         public const int CompressionNameLength = 32;
     }
 }
