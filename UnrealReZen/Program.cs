@@ -6,9 +6,12 @@ using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.IO;
 using CUE4Parse.UE4.IO.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.UE4.VirtualFileSystem;
+using CUE4Parse.Utils;
 using Serilog;
+using System.Text;
 using UnrealReZen.Core;
 using UnrealReZen.Core.Helpers;
 
@@ -236,13 +239,13 @@ namespace UnrealReZen
                 }]
             };
 
-            var utocEntryLookup = BuildUtocEntryLookup(provider);
+            var entryLookup = BuildEntryLookup(provider);
 
             foreach (var file in filesToRepack)
             {
                 string filename = Path.GetRelativePath(opts.ContentPath, file).Replace('\\', '/');
                 Log.Information("Mounting {0} (path: {1})", Path.GetFileName(filename), filename);
-                if (!utocEntryLookup.TryGetValue(filename, out var matches))
+                if (!entryLookup.TryGetValue(filename, out var matches))
                 {
                     Log.Warning("Skipping {0} because it's not found in game archives. " +
                         "Make sure the folder structure under --content-path mirrors the game's virtual path " +
@@ -252,19 +255,17 @@ namespace UnrealReZen
                 }
                 foreach (var entry in matches)
                 {
-                    var chunkId = entry.ChunkId;
                     manifest.Files.Add(new ManifestFile
                     {
-                        Filepath = entry.Path,
-                        ChunkID = new FIoChunkID(chunkId.ChunkId, 0, 0, chunkId.ChunkType)
+                        Filepath = entry.VirtualPath,
+                        ChunkID = new FIoChunkID(entry.ChunkId, 0, 0, entry.ChunkType)
                     });
 
-                    var header = entry.IoStoreReader.ContainerHeader;
-                    if (header != null)
+                    if (entry.IoStoreReader?.ContainerHeader is { } header)
                     {
                         foreach (var storeEntry in header.StoreEntries)
                         {
-                            manifest.Deps.ChunkIDToDependencies.TryAdd(chunkId.ChunkId, storeEntry);
+                            manifest.Deps.ChunkIDToDependencies.TryAdd(entry.ChunkId, storeEntry);
                         }
                     }
                 }
@@ -272,20 +273,38 @@ namespace UnrealReZen
             return manifest;
         }
 
-        private static Dictionary<string, List<FIoStoreEntry>> BuildUtocEntryLookup(DefaultFileProvider provider)
+        private record VfsEntryInfo(string VirtualPath, ulong ChunkId, byte ChunkType, IoStoreReader? IoStoreReader);
+
+        private static Dictionary<string, List<VfsEntryInfo>> BuildEntryLookup(DefaultFileProvider provider)
         {
-            var lookup = new Dictionary<string, List<FIoStoreEntry>>(StringComparer.OrdinalIgnoreCase);
+            var lookup = new Dictionary<string, List<VfsEntryInfo>>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var entry in provider.Files.Values.OfType<FIoStoreEntry>())
             {
                 if (Path.GetExtension(((AbstractVfsReader)entry.Vfs).Name) != ".utoc") continue;
-                if (!lookup.TryGetValue(entry.Path, out var list))
-                {
-                    list = new List<FIoStoreEntry>();
-                    lookup[entry.Path] = list;
-                }
-                list.Add(entry);
+                var chunkId = entry.ChunkId;
+                AddToLookup(lookup, entry.Path, new VfsEntryInfo(entry.Path, chunkId.ChunkId, chunkId.ChunkType, entry.IoStoreReader));
             }
+
+            foreach (var entry in provider.Files.Values.OfType<FPakEntry>())
+            {
+                if (Path.GetExtension(((AbstractVfsReader)entry.Vfs).Name) != ".pak") continue;
+                ulong chunkId = CityHash.CityHash64(Encoding.UTF8.GetBytes(entry.Path.ToLowerInvariant()));
+                byte chunkType = (byte)EIoChunkType5.ExternalFile;
+                AddToLookup(lookup, entry.Path, new VfsEntryInfo(entry.Path, chunkId, chunkType, null));
+            }
+
             return lookup;
+        }
+
+        private static void AddToLookup(Dictionary<string, List<VfsEntryInfo>> lookup, string path, VfsEntryInfo info)
+        {
+            if (!lookup.TryGetValue(path, out var list))
+            {
+                list = new List<VfsEntryInfo>();
+                lookup[path] = list;
+            }
+            list.Add(info);
         }
     }
 }
