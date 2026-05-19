@@ -17,46 +17,52 @@ namespace UnrealReZen.Core
         {
             FIoDependencyFormat depver = gameVer >= EGame.GAME_UE5_0 ? FIoDependencyFormat.UE5 : FIoDependencyFormat.UE4;
 
-            var fdata = new List<AssetMetadata>();
-            AssetMetadata newEntry;
+            var ucasFiles = new List<AssetMetadata>();
+            var pakFiles = new List<(string virtualPath, string diskPath)>();
             Constants.MountPoint = mountPoint;
 
             foreach (var v in m.Files)
             {
-                var offlen = new FIoOffsetAndLength();
                 var p = Path.Combine(dir, v.Filepath);
-                if (File.Exists(p))
+
+                // ExternalFile chunks (type 7) originate from .pak archives and must stay there
+                if (v.ChunkID.Type == (byte)EIoChunkType5.ExternalFile && File.Exists(p))
                 {
-                    offlen.SetLength((ulong)new FileInfo(p).Length);
-                }
-                else if (v.Filepath == Constants.DepFileName)
-                {
-                    offlen.SetLength(0);
+                    pakFiles.Add((v.Filepath, p));
+                    continue;
                 }
 
-                newEntry = new AssetMetadata
+                var offlen = new FIoOffsetAndLength();
+                if (File.Exists(p))
+                    offlen.SetLength((ulong)new FileInfo(p).Length);
+                else if (v.Filepath == Constants.DepFileName)
+                    offlen.SetLength(0);
+
+                ucasFiles.Add(new AssetMetadata
                 {
                     FilePath = v.Filepath,
                     ChunkID = v.ChunkID,
                     OffLen = offlen,
                     Metadata = new FIoStoreTocEntryMeta { ChunkHash = new FIoChunkHash(new byte[20]) },
                     CompressionBlocks = [],
-                };
-
-                fdata.Add(newEntry);
+                });
             }
 
-            PackFilesToUcas(fdata, m, dir, outFilename, compression, depver);
+            PackFilesToUcas(ucasFiles, m, dir, outFilename, compression, depver);
 
             if (outputAes is not null)
-            {
                 EncryptUcasInPlace(Path.ChangeExtension(outFilename, ".ucas"), outputAes.Key);
-            }
 
-            var utocBytes = ConstructUtocFile(fdata, compression, outputAes is not null, gameVer);
+            var utocBytes = ConstructUtocFile(ucasFiles, compression, outputAes is not null, gameVer);
             File.WriteAllBytes(outFilename, utocBytes);
-            File.WriteAllBytes(Path.ChangeExtension(outFilename, ".pak"), PakHolder.Packed_P);
-            return fdata.Count;
+
+            var pakPath = Path.ChangeExtension(outFilename, ".pak");
+            if (pakFiles.Count > 0)
+                PakWriter.WritePak(pakPath, mountPoint, pakFiles);
+            else
+                File.WriteAllBytes(pakPath, PakHolder.Packed_P);
+
+            return ucasFiles.Count + pakFiles.Count - 1; // subtract container header entry
         }
 
         public static void PackFilesToUcas(List<AssetMetadata> files, Dependency m, string dir, string outFilename, string compression, FIoDependencyFormat depver)
