@@ -105,10 +105,17 @@ namespace UnrealReZen
             Log.Information("Packing Contents...");
             var manifest = BuildManifest(provider, opts, engineVersion, filesToRepack);
 
+            int packedCount = manifest.Files.Count - 1; // subtract container header entry
+            if (packedCount == 0)
+            {
+                Log.Fatal("No files were matched in game archives. Nothing to pack.");
+                return ExitError;
+            }
+
             Log.Information("Packing files...");
             var outputAesKey = opts.EncryptOutput ? aesKey : null;
             Packer.PackToCasToc(opts.ContentPath, manifest, opts.OutputPath, opts.CompressionFormat, outputAesKey, opts.MountPoint, engineVersion);
-            Console.WriteLine($"Done! {filesToRepack.Length} file(s) packed");
+            Console.WriteLine($"Done! {packedCount} file(s) packed");
             return ExitOk;
         }
 
@@ -233,10 +240,13 @@ namespace UnrealReZen
             foreach (var file in filesToRepack)
             {
                 string filename = Path.GetRelativePath(opts.ContentPath, file).Replace('\\', '/');
-                Log.Information("Mounting " + Path.GetFileName(filename));
+                Log.Information("Mounting {0} (path: {1})", Path.GetFileName(filename), filename);
                 if (!utocEntryLookup.TryGetValue(filename, out var matches))
                 {
-                    Log.Warning("Skipping " + filename + " because it's not found in archives.");
+                    Log.Warning("Skipping {0} because it's not found in game archives. " +
+                        "Make sure the folder structure under --content-path mirrors the game's virtual path " +
+                        "(e.g. HT/Content/Localization/...). " +
+                        "If you see 'unsupported version' warnings above, rebuild UnrealReZen from source.", filename);
                     continue;
                 }
                 foreach (var entry in matches)

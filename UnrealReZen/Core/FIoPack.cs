@@ -1,4 +1,5 @@
 ﻿using CUE4Parse.Encryption.Aes;
+using Serilog;
 using CUE4Parse.UE4.IO.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
@@ -90,6 +91,12 @@ namespace UnrealReZen.Core
                 using ChunkSource source = File.Exists(pathToRead)
                     ? ChunkSource.FromFile(pathToRead)
                     : CreateDependencyChunkSource(files[i], m, depver);
+
+                if (source.Length == 0 && files[i].FilePath != Constants.DepFileName)
+                {
+                    Log.Warning("Source file '{0}' is 0 bytes — nothing will be written for this entry. " +
+                        "Make sure the file at that path exists and is not empty.", pathToRead);
+                }
 
                 files[i].OffLen.SetLength((ulong)source.Length);
 
