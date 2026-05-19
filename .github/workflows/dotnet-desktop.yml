@@ -36,3 +36,20 @@ jobs:
 
       - name: Build
         run: dotnet build UnrealReZen/UnrealReZen.csproj --no-restore --configuration Release
+
+      - name: Publish (win-x64 single file)
+        run: >
+          dotnet publish UnrealReZen/UnrealReZen.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained false
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output publish/win-x64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UnrealReZen-win-x64
+          path: publish/win-x64/
+          if-no-files-found: error
