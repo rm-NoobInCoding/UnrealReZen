@@ -50,11 +50,15 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output publish/win-x64
 
+      - name: Zip release
+        shell: pwsh
+        run: Compress-Archive -Path publish/win-x64/* -DestinationPath publish/UnrealReZen-win-x64.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: UnrealReZen-win-x64
-          path: publish/win-x64/
+          path: publish/UnrealReZen-win-x64.zip
           if-no-files-found: error
 
       - name: Publish to GitHub Releases (latest)
@@ -64,6 +68,6 @@ jobs:
           tag_name: latest
           name: Latest build
           prerelease: true
-          files: publish/win-x64/*
+          files: publish/UnrealReZen-win-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
