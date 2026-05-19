@@ -52,13 +52,16 @@ jobs:
 
       - name: Zip release
         shell: pwsh
-        run: Compress-Archive -Path publish/win-x64/* -DestinationPath publish/UnrealReZen-win-x64.zip
+        run: |
+          $hash = "${{ github.sha }}".Substring(0, 7)
+          Compress-Archive -Path publish/win-x64/* -DestinationPath "publish/UnrealReZen-win-x64-$hash.zip"
+          echo "ZIP_NAME=UnrealReZen-win-x64-$hash.zip" >> $env:GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: UnrealReZen-win-x64
-          path: publish/UnrealReZen-win-x64.zip
+          path: publish/${{ env.ZIP_NAME }}
           if-no-files-found: error
 
       - name: Publish to GitHub Releases (latest)
@@ -68,6 +71,6 @@ jobs:
           tag_name: latest
           name: Latest build
           prerelease: true
-          files: publish/UnrealReZen-win-x64.zip
+          files: publish/${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
