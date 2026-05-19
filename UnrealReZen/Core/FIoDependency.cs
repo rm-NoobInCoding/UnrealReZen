@@ -94,63 +94,63 @@ namespace UnrealReZen.Core
         {
             using var ms = new MemoryStream();
 
-            var hdr = new DepsHeader_UE5
-            {
-                Signature = Constants.UE5_DepFile_Sig,
-                Version = EIoContainerHeaderVersion.OptionalSegmentPackages,
-                ContainerId = Deps.ThisPackageID,
-                PackageCount = Deps.ChunkIDToDependencies.Count
-            };
-            hdr.Write(ms);
+            // Fixed header: Signature + Version + ContainerId
+            ms.Write(Constants.UE5_DepFile_Sig);
+            ms.Write((int)EIoContainerHeaderVersion.Latest);
+            ms.Write(Deps.ThisPackageID);
 
-            var ids = Deps.ChunkIDToDependencies.Keys.ToList();
-            var totalNumberOfDependencies = 0;
-            foreach (var k in Deps.ChunkIDToDependencies)
-            {
-                totalNumberOfDependencies += k.Value.ImportedPackages.Length;
-            }
+            // Regular packages (PackageIds array + StoreEntries blob)
+            WritePackageIdsAndEntries(ms, Deps.ChunkIDToDependencies);
 
-            ids.Sort();
-            ids.Reverse();
+            // Optional-segment packages (always empty — we don't populate these)
+            ms.Write((int)0); // PackageIds count = 0
+            ms.Write((int)0); // StoreEntriesSize = 0
 
-            foreach (var id in ids)
-            {
-                ms.Write(id);
-            }
+            // ContainerNameMap (LoadNameBatch) — empty
+            ms.Write((int)0);
 
-            MemoryStream storeEntries = new MemoryStream();
-            MemoryStream storeEntriesbuffer = new MemoryStream();
+            // LocalizedPackages — empty
+            ms.Write((int)0);
 
-            var depsToWrite = new List<ulong>();
+            // PackageRedirects — empty
+            ms.Write((int)0);
+
+            // SoftPackageReferencesSerialInfo (added in version SoftPackageReferencesOffset = 5)
+            ms.Write((long)0); // Offset
+            ms.Write((long)0); // Size
+
+            return ms.ToArray();
+        }
+
+        private static void WritePackageIdsAndEntries(MemoryStream ms, Dictionary<ulong, FFilePackageStoreEntry> deps)
+        {
+            var ids = deps.Keys.OrderByDescending(x => x).ToList();
+
+            // PackageIds: int32 count + count * 8-byte IDs
+            ms.Write((int)ids.Count);
+            foreach (var id in ids) ms.Write(id);
+
+            // StoreEntries: int32 totalSize + per-entry records + trailing buffer
+            using var storeEntries = new MemoryStream();
+            using var storeBuffer = new MemoryStream();
             for (int i = 0; i < ids.Count; i++)
             {
-                var id = ids[i];
-                var entry = Deps.ChunkIDToDependencies[id];
-
+                var entry = deps[ids[i]];
                 var link = new DepLinks_UE5
                 {
                     ExportCount = entry.ExportCount,
                     ExportBundleCount = entry.ExportBundleCount,
                     ImportedPackages = entry.ImportedPackages.Select(a => a.id).ToList(),
-                    BaseOffset = storeEntriesbuffer.Length + (ids.Count * 24 - storeEntries.Position),
+                    BaseOffset = storeBuffer.Length + (ids.Count * 24 - storeEntries.Position),
                     ShaderMapHashes = entry.ShaderMapHashes.Select(a => a.Hash).ToList(),
                 };
-                foreach (var ImpPak in entry.ImportedPackages)
-                {
-                    storeEntriesbuffer.Write(ImpPak.id);
-                }
-                foreach (var ShMapHash in entry.ShaderMapHashes)
-                {
-                    storeEntriesbuffer.Write(ShMapHash.Hash);
-                }
+                foreach (var imp in entry.ImportedPackages) storeBuffer.Write(imp.id);
+                foreach (var hash in entry.ShaderMapHashes) storeBuffer.Write(hash.Hash);
                 link.Write(storeEntries);
-
             }
-            ms.Write((int)storeEntries.Length + (int)storeEntriesbuffer.Length);
+            ms.Write((int)(storeEntries.Length + storeBuffer.Length));
             ms.Write(storeEntries.ToArray());
-            ms.Write(storeEntriesbuffer.ToArray());
-            ms.Write(new byte[20]);
-            return ms.ToArray();
+            ms.Write(storeBuffer.ToArray());
         }
     }
 
