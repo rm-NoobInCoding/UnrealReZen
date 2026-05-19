@@ -96,7 +96,7 @@ namespace UnrealReZen.Core
 
             // Fixed header: Signature + Version + ContainerId
             ms.Write(Constants.UE5_DepFile_Sig);
-            ms.Write((int)EIoContainerHeaderVersion.Latest);
+            ms.Write((int)EIoContainerHeaderVersion.SoftPackageReferencesOffset);
             ms.Write(Deps.ThisPackageID);
 
             // Regular packages (PackageIds array + StoreEntries blob)
