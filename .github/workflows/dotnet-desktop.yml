@@ -53,3 +53,14 @@ jobs:
           name: UnrealReZen-win-x64
           path: publish/win-x64/
           if-no-files-found: error
+
+      - name: Publish to GitHub Releases (latest)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          prerelease: true
+          files: publish/win-x64/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
