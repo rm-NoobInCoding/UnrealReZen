@@ -245,12 +245,15 @@ namespace UnrealReZen.Core
         public static byte[] ConstructUtocFile(List<AssetMetadata> files, string compression, bool isEncrypted, EGame gameVer)
         {
             bool isCompressed = !compression.Equals("none", StringComparison.OrdinalIgnoreCase);
+            // UE5 requires utoc v8 (ReplaceIoChunkHashWithIoHash); UE4 uses v3
+            bool isUE5 = gameVer >= EGame.GAME_UE5_0;
+            byte tocVersion = isUE5 ? (byte)8 : (byte)Constants.PackUtocVersion;
 
             var containerFlags = EIoContainerFlags.IndexedContainerFlag;
             if (isCompressed) containerFlags |= EIoContainerFlags.CompressedContainerFlag;
             if (isEncrypted) containerFlags |= EIoContainerFlags.EncryptedContainerFlag;
 
-            byte containerChunkType = gameVer >= EGame.GAME_UE5_0
+            byte containerChunkType = isUE5
                 ? (byte)EIoChunkType5.ContainerHeader
                 : (byte)EIoChunkType.ContainerHeader;
 
@@ -268,7 +271,7 @@ namespace UnrealReZen.Core
             var header = new UTocHeader
             {
                 Magic = Constants.MagicUtoc,
-                Version = (byte)Constants.PackUtocVersion,
+                Version = tocVersion,
                 HeaderSize = (uint)UTocHeader.SizeOf,
                 EntryCount = (uint)files.Count,
                 CompressedBlockEntryCount = (uint)compressedBlocksCount,
@@ -301,7 +304,7 @@ namespace UnrealReZen.Core
             }
 
             buf.Write(dirIndexBytes, 0, dirIndexBytes.Length);
-            foreach (var file in files) file.Metadata.Write(buf);
+            foreach (var file in files) file.Metadata.Write(buf, isV8: isUE5);
 
             return buf.ToArray();
         }

@@ -331,11 +331,22 @@ namespace UnrealReZen.Core
     {
         public required FIoChunkHash ChunkHash { get; set; }
         public FIoStoreTocEntryMetaFlags Flags { get; set; }
-        public void Write(MemoryStream br)
+
+        // v8+ (ReplaceIoChunkHashWithIoHash): 20-byte SHA1 + 1-byte flags + 3-byte padding = 24 bytes
+        // v<8: 20-byte hash + 12-byte padding + 1-byte flags = 33 bytes
+        public void Write(MemoryStream br, bool isV8 = false)
         {
             br.Write(ChunkHash.Hash);
-            br.Write(ChunkHash.Padding);
-            br.Write((byte)Flags);
+            if (isV8)
+            {
+                br.Write((byte)Flags);
+                br.Write(new byte[3]);
+            }
+            else
+            {
+                br.Write(ChunkHash.Padding);
+                br.Write((byte)Flags);
+            }
         }
     }
 

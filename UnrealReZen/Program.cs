@@ -240,6 +240,7 @@ namespace UnrealReZen
             };
 
             var entryLookup = BuildEntryLookup(provider);
+            var addedChunkIds = new HashSet<ulong>();
 
             foreach (var file in filesToRepack)
             {
@@ -255,6 +256,9 @@ namespace UnrealReZen
                 }
                 foreach (var entry in matches)
                 {
+                    // A file may appear in multiple pak/utoc archives; only pack it once
+                    if (!addedChunkIds.Add(entry.ChunkId)) continue;
+
                     manifest.Files.Add(new ManifestFile
                     {
                         Filepath = entry.VirtualPath,
