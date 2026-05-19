@@ -107,7 +107,11 @@ namespace UnrealReZen.Core
             ms.Write((int)0); // StoreEntriesSize = 0
 
             // ContainerNameMap (LoadNameBatch) — empty
-            ms.Write((int)0);
+            // The real engine serializes numNames(4) + numStringBytes(4) unconditionally,
+            // even when numNames=0. CUE4Parse returns early after numNames=0 but the
+            // game engine always writes both fields (8 bytes total for an empty batch).
+            ms.Write((int)0); // numNames
+            ms.Write((int)0); // numStringBytes
 
             // LocalizedPackages — empty
             ms.Write((int)0);

@@ -27,7 +27,7 @@ jobs:
 
       - name: Init CUE4Parse submodule
         shell: bash
-        run: git submodule update --init external/CUE4Parse
+        run: git submodule update --init --remote external/CUE4Parse
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
