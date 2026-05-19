@@ -86,6 +86,11 @@ namespace UnrealReZen.Core
 
             var compMethodNumber = !compression.Equals("none", StringComparison.OrdinalIgnoreCase) ? (byte)1 : (byte)0;
             var compFun = CompressionUtils.GetCompressionFunction(compression) ?? throw new Exception("Could not find " + compression + " method. Please use None, Oodle or Zlib");
+            // The container header chunk must be written as raw (uncompressed) bytes so the
+            // engine can read them directly at offset 0 without going through the decompressor.
+            byte containerChunkType = depver == FIoDependencyFormat.UE5
+                ? (byte)EIoChunkType5.ContainerHeader
+                : (byte)EIoChunkType.ContainerHeader;
             using var f = File.Open(Path.ChangeExtension(outFilename, ".ucas"), FileMode.Create);
             var readBuffer = new byte[Constants.CompSize];
             Span<byte> padBuffer = stackalloc byte[16];
@@ -119,6 +124,8 @@ namespace UnrealReZen.Core
 
                 files[i].Metadata.Flags = FIoStoreTocEntryMetaFlags.CompressedMetaFlag;
 
+                bool isContainerHeader = files[i].ChunkID.Type == containerChunkType;
+
                 using var sha1 = SHA1.Create();
                 long readPos = 0;
                 while (readPos < source.Length)
@@ -128,11 +135,12 @@ namespace UnrealReZen.Core
                     readPos += chunkLen;
                     sha1.TransformBlock(readBuffer, 0, chunkLen, readBuffer, 0);
 
-                    byte[] compressedChunk = compFun(chunkLen == readBuffer.Length ? readBuffer : readBuffer[..chunkLen]);
+                    byte[] rawChunk = chunkLen == readBuffer.Length ? readBuffer : readBuffer[..chunkLen];
+                    byte[] compressedChunk = isContainerHeader ? rawChunk.ToArray() : compFun(rawChunk);
 
                     var block = new FIoStoreTocCompressedBlockEntry
                     {
-                        CompressionMethod = compMethodNumber
+                        CompressionMethod = isContainerHeader ? (byte)0 : compMethodNumber
                     };
                     block.SetOffset((ulong)f.Position);
                     block.SetUncompressedSize((uint)chunkLen);
