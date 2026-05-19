@@ -52,7 +52,7 @@ public static class PakWriter
         Write64(f, indexOffset);
         Write64(f, indexBytes.LongLength);
         f.Write(indexHash);                         // 20-byte SHA1 of index
-        f.Write(new byte[4 * 32]);                  // 4 compression method name slots (all empty = None)
+        f.Write(new byte[5 * 32]);                  // 5 compression method name slots = Size8a footer (UE5 standard)
     }
 
     // Writes an FPakEntry record (used both inline before data and in the index)
